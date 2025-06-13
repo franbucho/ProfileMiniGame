@@ -7,10 +7,14 @@ const EMAILJS_TEMPLATE_ID = 'template_xjhieh3';
 emailjs.init(EMAILJS_USER_ID);
 
 // Elementos del DOM
+const setupScreen = document.getElementById('setupScreen');
+const gameScreen = document.getElementById('gameScreen');
+const playerNameInput = document.getElementById('playerName');
+const startBtn = document.getElementById('startBtn');
+
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const scoreDisplay = document.getElementById('scoreDisplay');
-const startBtn = document.getElementById('startBtn');
 const leaderboardList = document.getElementById('leaderboardList');
 const gameOverScreen = document.getElementById('gameOverScreen');
 const finalScoreDisplay = document.getElementById('finalScore');
@@ -22,16 +26,40 @@ const downBtn = document.getElementById('downBtn');
 const leftBtn = document.getElementById('leftBtn');
 const rightBtn = document.getElementById('rightBtn');
 
-
 // Variables del juego
 let snake, food, dx, dy, score, gameInterval;
 let gridSize = 20;
 
-// --- FUNCIONES DEL JUEGO ---
+// --- FUNCIONES DE FLUJO DEL JUEGO ---
 
-function startGame() {
+function showSetupScreen() {
+    gameOverScreen.style.display = 'none';
+    gameScreen.style.display = 'none';
+    setupScreen.style.display = 'block';
+}
+
+function showGameScreen() {
+    const name = playerNameInput.value.trim();
+    const nameRegex = /^[a-zA-Z\s]+$/; // Permite letras y espacios
+
+    // --- Validación del Nombre ---
+    if (name === '') {
+        alert('Please enter your name.');
+        return;
+    }
+    if (!nameRegex.test(name)) {
+        alert('Name can only contain letters and spaces.');
+        return;
+    }
+
+    // Si la validación es exitosa, cambiamos de pantalla
+    setupScreen.style.display = 'none';
+    gameScreen.style.display = 'flex'; // Usamos flex para centrar los controles
+    runGame();
+}
+
+function runGame() {
   if (gameInterval) clearInterval(gameInterval);
-  gameOverScreen.style.display = 'none';
   resetGame();
   draw();
   gameInterval = setInterval(() => {
@@ -47,6 +75,8 @@ function showGameOver() {
   finalScoreDisplay.textContent = score;
   gameOverScreen.style.display = 'flex';
 }
+
+// --- FUNCIONES DE LÓGICA DEL JUEGO ---
 
 function resetGame() {
   snake = [{ x: 8, y: 8 }];
@@ -98,12 +128,12 @@ function move() {
   }
 }
 
-// --- CONTROLES (TECLADO Y MÓVIL) ---
+// --- CONTROLES ---
 
 function handleDirectionChange(newDx, newDy) {
     if (!gameInterval) return;
     if ((newDx !== 0 && dx === -newDx) || (newDy !== 0 && dy === -newDy)) {
-        return; // Prevenir que la serpiente se invierta sobre sí misma
+        return;
     }
     dx = newDx;
     dy = newDy;
@@ -118,14 +148,13 @@ document.addEventListener('keydown', e => {
   }
 });
 
-// Usamos 'touchstart' para una respuesta más rápida en móviles
 upBtn.addEventListener('touchstart', (e) => { e.preventDefault(); handleDirectionChange(0, -1); });
 downBtn.addEventListener('touchstart', (e) => { e.preventDefault(); handleDirectionChange(0, 1); });
 leftBtn.addEventListener('touchstart', (e) => { e.preventDefault(); handleDirectionChange(-1, 0); });
 rightBtn.addEventListener('touchstart', (e) => { e.preventDefault(); handleDirectionChange(1, 0); });
 
 
-// --- FUNCIONES DEL LEADERBOARD (MEJORADAS) ---
+// --- LEADERBOARD ---
 
 function getLeaderboard() { return JSON.parse(localStorage.getItem('profileMiniGameLeaderboard_v2')) || []; }
 function saveLeaderboard(board) { localStorage.setItem('profileMiniGameLeaderboard_v2', JSON.stringify(board)); }
@@ -162,10 +191,10 @@ function renderLeaderboard() {
   });
 }
 
-// --- FUNCIÓN DE ENVÍO DE CORREO INTELIGENTE ---
+// --- ENVÍO DE CORREO ---
 
 function sendSmartNotification() {
-  const name = document.getElementById('playerName').value.trim() || 'Anonymous';
+  const name = playerNameInput.value.trim(); // Ya no puede ser anónimo
   const currentScore = score;
   const oldHighScore = parseInt(localStorage.getItem('profileMiniGameHighScore') || '0');
 
@@ -212,8 +241,11 @@ function sendSmartNotification() {
     .catch(err => console.error("EmailJS send failed:", err));
 }
 
-// --- EVENT LISTENERS E INICIALIZACIÓN ---
+// --- INICIALIZACIÓN ---
 
-startBtn.addEventListener('click', startGame);
-playAgainBtn.addEventListener('click', startGame);
+startBtn.addEventListener('click', showGameScreen);
+playAgainBtn.addEventListener('click', () => {
+    gameOverScreen.style.display = 'none';
+    runGame();
+});
 renderLeaderboard();

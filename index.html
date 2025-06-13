@@ -2,18 +2,31 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>Profile MiniGame</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"> <title>Profile MiniGame</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="container">
-    <h1>🐍 Profile MiniGame</h1> 
     
-    <label for="playerName">Enter your name:</label>
-    <input type="text" id="playerName" placeholder="Anonymous" />
-    <button id="startBtn">Start Game</button>
-    <div id="scoreDisplay">Score: 0</div>
-    <canvas id="gameCanvas" width="400" height="400"></canvas>
+    <div id="setupScreen">
+      <h1>🐍 Profile MiniGame</h1> 
+      <label for="playerName">Enter your name:</label>
+      <input type="text" id="playerName" placeholder="Player" maxlength="15" />
+      <button id="startBtn">Continue</button>
+    </div>
+
+    <div id="gameScreen" style="display: none;">
+      <div id="scoreDisplay">Score: 0</div>
+      <canvas id="gameCanvas" width="400" height="400"></canvas>
+      <div id="mobileControls" class="mobile-controls-container">
+          <button id="upBtn">▲</button>
+          <div class="middle-row">
+              <button id="leftBtn">◄</button>
+              <button id="rightBtn">►</button>
+          </div>
+          <button id="downBtn">▼</button>
+      </div>
+    </div>
 
     <div id="gameOverScreen" class="overlay-container" style="display: none;">
       <div class="game-over-box">
@@ -26,15 +39,6 @@
     <div id="leaderboard">
       <h2>🏆 Leaderboard</h2>
       <ol id="leaderboardList"></ol>
-    </div>
-
-    <div id="mobileControls" class="mobile-controls-container">
-        <button id="upBtn">▲</button>
-        <div class="middle-row">
-            <button id="leftBtn">◄</button>
-            <button id="rightBtn">►</button>
-        </div>
-        <button id="downBtn">▼</button>
     </div>
   </div>
 

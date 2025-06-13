@@ -8,8 +8,8 @@ body {
   justify-content: center;
   height: 100vh;
   /* Mejoras para móvil */
-  -webkit-tap-highlight-color: transparent; /* Evita el destello gris al tocar */
-  touch-action: manipulation; /* Evita el zoom por doble toque */
+  -webkit-tap-highlight-color: transparent; 
+  touch-action: manipulation;
 }
 
 .container {
@@ -22,7 +22,7 @@ body {
   width: 90%;
   text-align: center;
   overflow: hidden;
-  user-select: none; /* Evita que se seleccione el texto */
+  user-select: none;
 }
 
 h1 {
@@ -31,7 +31,7 @@ h1 {
 
 #gameCanvas {
   background: #222;
-  margin-top: 20px;
+  margin-top: 10px; /* Reducido */
   border: 2px solid #00ff88;
   width: 100%;
   height: auto;
@@ -43,7 +43,7 @@ h1 {
 }
 
 #scoreDisplay {
-  margin: 15px 0;
+  margin-bottom: 10px; /* Reducido */
   font-size: 20px;
   color: #00ff88;
 }
@@ -136,7 +136,7 @@ button:hover {
   display: none;
   flex-direction: column;
   align-items: center;
-  margin-top: 20px;
+  margin-top: 15px; /* Reducido */
 }
 
 .mobile-controls-container .middle-row {
@@ -155,7 +155,7 @@ button:hover {
   border: 1px solid #00ff88;
 }
 
-.mobile-controls-container button:active { /* Feedback visual al tocar */
+.mobile-controls-container button:active {
   background-color: #00ff88;
   color: #1f1f1f;
 }
@@ -208,6 +208,12 @@ button:hover {
   #leaderboard h2 {
     font-size: 1.1rem;
     margin-bottom: 5px;
+  }
+  
+  #gameScreen { /* Para mostrar los controles */
+      display: none;
+      flex-direction: column;
+      align-items: center;
   }
   
   .mobile-controls-container {
