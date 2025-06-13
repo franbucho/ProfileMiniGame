@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Moving Bot Game</title>
+  <style>
+    body {
+      margin: 0;
+      background: #111;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-family: sans-serif;
+    }
+
+    #game {
+      position: relative;
+      width: 500px;
+      height: 500px;
+      background: #222;
+      border: 3px solid #00ff88;
+    }
+
+    #player {
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      background: #00ff88;
+      top: 230px;
+      left: 230px;
+      transition: top 0.1s, left 0.1s;
+    }
+
+    h1 {
+      color: #00ff88;
+      position: absolute;
+      top: 20px;
+      left: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div id="game">
+    <div id="player"></div>
+  </div>
+
+  <script>
+    const player = document.getElementById('player');
+    let posX = 230;
+    let posY = 230;
+    const speed = 10;
+    const size = 40;
+    const limit = 500;
+
+    document.addEventListener('keydown', (e) => {
+      switch (e.key) {
+        case 'ArrowUp':
+          if (posY - speed >= 0) posY -= speed;
+          break;
+        case 'ArrowDown':
+          if (posY + speed + size <= limit) posY += speed;
+          break;
+        case 'ArrowLeft':
+          if (posX - speed >= 0) posX -= speed;
+          break;
+        case 'ArrowRight':
+          if (posX + speed + size <= limit) posX += speed;
+          break;
+      }
+      player.style.top = posY + 'px';
+      player.style.left = posX + 'px';
+    });
+  </script>
+</body>
+</html>
