@@ -1,6 +1,6 @@
 # Snake Game 🐍 - Classic Arcade with Score Saving & Email Share
 
-A simple but fun Snake game implemented in vanilla JavaScript, HTML5 Canvas, and CSS.  
+A simple but fun Snake game implemented in vanilla JavaScript, HTML5 Canvas, and CSS..  
 
 **Features:**
 
