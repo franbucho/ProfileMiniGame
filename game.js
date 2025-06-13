@@ -1,136 +1,110 @@
-const canvas = document.getElementById('game');
+import { EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, EMAILJS_PUBLIC_KEY } from './config.js';
+
+emailjs.init(EMAILJS_PUBLIC_KEY);
+
+const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-const grid = 20, size = 20;
-let count = 0, score = 0;
-
-let snake = { x: 200, y: 200, dx: grid, dy: 0, cells: [], maxCells: 4 };
-let food = { x: grid * 5, y: grid * 5 };
-
+const startBtn = document.getElementById('startBtn');
 const scoreDisplay = document.getElementById('score');
-const modal = document.getElementById('modal');
-const finalScoreSpan = document.getElementById('final-score');
-const playerNameInput = document.getElementById('player-name');
-const saveScoreBtn = document.getElementById('save-score');
-const sendEmailBtn = document.getElementById('send-email');
-const closeModalBtn = document.getElementById('close-modal');
-const highscoresTableBody = document.querySelector('#highscores tbody');
+let playerNameInput = document.getElementById('playerName');
 
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'ArrowLeft' && snake.dx === 0)   { snake.dx = -grid; snake.dy = 0; }
-  if (e.key === 'ArrowUp' && snake.dy === 0)     { snake.dx = 0; snake.dy = -grid; }
-  if (e.key === 'ArrowRight' && snake.dx === 0) { snake.dx = grid; snake.dy = 0; }
-  if (e.key === 'ArrowDown' && snake.dy === 0)  { snake.dx = 0; snake.dy = grid; }
-});
+const box = 20;
+const canvasSize = 400;
+let snake, food, direction, score, gameInterval;
 
-function getRandomInt(min, max) {
-  return Math.floor(Math.random() * (max - min)) + min;
-}
+startBtn.addEventListener('click', startGame);
 
-function reset() {
-  snake.x = 200;
-  snake.y = 200;
-  snake.cells = [];
-  snake.maxCells = 4;
-  snake.dx = grid;
-  snake.dy = 0;
+function startGame() {
+  const name = playerNameInput.value.trim();
+  if (!name) {
+    alert('Please enter your name!');
+    return;
+  }
+
+  direction = 'RIGHT';
   score = 0;
-  scoreDisplay.textContent = 'Score: 0';
-  food.x = getRandomInt(0, canvas.width / grid) * grid;
-  food.y = getRandomInt(0, canvas.height / grid) * grid;
+  snake = [{ x: 9 * box, y: 10 * box }];
+  placeFood();
+
+  clearInterval(gameInterval);
+  gameInterval = setInterval(draw, 150);
+
+  document.addEventListener('keydown', updateDirection);
 }
 
-function loop() {
-  requestAnimationFrame(loop);
-  if (++count < 10) return;
-  count = 0;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+function draw() {
+  ctx.fillStyle = '#1f1f1f';
+  ctx.fillRect(0, 0, canvasSize, canvasSize);
 
-  snake.x += snake.dx;
-  snake.y += snake.dy;
-
-  if (snake.x < 0 || snake.x >= canvas.width || snake.y < 0 || snake.y >= canvas.height) {
-    return gameOver();
+  for (let i = 0; i < snake.length; i++) {
+    ctx.fillStyle = i === 0 ? '#00ff88' : '#00cc66';
+    ctx.fillRect(snake[i].x, snake[i].y, box, box);
   }
 
-  snake.cells.unshift({x: snake.x, y: snake.y});
-  if (snake.cells.length > snake.maxCells) snake.cells.pop();
+  ctx.fillStyle = 'red';
+  ctx.fillRect(food.x, food.y, box, box);
 
-  ctx.fillStyle = '#f00';
-  ctx.fillRect(food.x, food.y, grid - 1, grid - 1);
+  let head = { ...snake[0] };
 
-  ctx.fillStyle = '#0f0';
-  for(let i = 0; i < snake.cells.length; i++) {
-    const cell = snake.cells[i];
-    ctx.fillRect(cell.x, cell.y, grid - 1, grid - 1);
+  if (direction === 'LEFT') head.x -= box;
+  if (direction === 'RIGHT') head.x += box;
+  if (direction === 'UP') head.y -= box;
+  if (direction === 'DOWN') head.y += box;
 
-    // Eat food
-    if (cell.x === food.x && cell.y === food.y) {
-      snake.maxCells++;
-      score++;
-      scoreDisplay.textContent = 'Score: ' + score;
-      food.x = getRandomInt(0, canvas.width / grid) * grid;
-      food.y = getRandomInt(0, canvas.height / grid) * grid;
-    }
-
-    // Check collision with self
-    for(let j = i + 1; j < snake.cells.length; j++) {
-      if (cell.x === snake.cells[j].x && cell.y === snake.cells[j].y) {
-        return gameOver();
-      }
-    }
+  // Game over conditions
+  if (
+    head.x < 0 || head.y < 0 || head.x >= canvasSize || head.y >= canvasSize ||
+    snake.some(segment => segment.x === head.x && segment.y === head.y)
+  ) {
+    clearInterval(gameInterval);
+    sendScore(playerNameInput.value, score);
+    return;
   }
+
+  if (head.x === food.x && head.y === food.y) {
+    score++;
+    placeFood();
+  } else {
+    snake.pop();
+  }
+
+  snake.unshift(head);
+  scoreDisplay.textContent = 'Score: ' + score;
 }
 
-function gameOver() {
-  finalScoreSpan.textContent = score;
-  modal.classList.remove('hidden');
-  playerNameInput.focus();
-  // stop game loop by not calling requestAnimationFrame here
+function updateDirection(event) {
+  if (event.key === 'ArrowLeft' && direction !== 'RIGHT') direction = 'LEFT';
+  if (event.key === 'ArrowUp' && direction !== 'DOWN') direction = 'UP';
+  if (event.key === 'ArrowRight' && direction !== 'LEFT') direction = 'RIGHT';
+  if (event.key === 'ArrowDown' && direction !== 'UP') direction = 'DOWN';
 }
 
-saveScoreBtn.onclick = () => {
-  const name = playerNameInput.value.trim() || 'Anonymous';
-  saveHighScore(name, score);
-  modal.classList.add('hidden');
-  reset();
-  playerNameInput.value = '';
-  renderHighScores();
-  requestAnimationFrame(loop);
-};
-
-sendEmailBtn.onclick = () => {
-  const name = playerNameInput.value.trim() || 'Anonymous';
-  const subject = encodeURIComponent(`Snake Game Score from ${name}`);
-  const body = encodeURIComponent(`Hi Francisco Villahermosa,\n\nI scored ${score} points on your Snake game!\n\nCheers,\n${name}`);
-  window.location.href = `mailto:franciscovillahermosa@gmail.com?subject=${subject}&body=${body}`;
-};
-
-closeModalBtn.onclick = () => {
-  modal.classList.add('hidden');
-  reset();
-  playerNameInput.value = '';
-  requestAnimationFrame(loop);
-};
-
-function saveHighScore(name, score) {
-  const highscores = JSON.parse(localStorage.getItem('snakeHighScores')) || [];
-  highscores.push({ name, score });
-  highscores.sort((a,b) => b.score - a.score);
-  if (highscores.length > 10) highscores.length = 10; // Keep top 10
-  localStorage.setItem('snakeHighScores', JSON.stringify(highscores));
+function placeFood() {
+  food = {
+    x: Math.floor(Math.random() * (canvasSize / box)) * box,
+    y: Math.floor(Math.random() * (canvasSize / box)) * box,
+  };
 }
 
-function renderHighScores() {
-  const highscores = JSON.parse(localStorage.getItem('snakeHighScores')) || [];
-  highscoresTableBody.innerHTML = '';
-  highscores.forEach(({name, score}) => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${name}</td><td>${score}</td>`;
-    highscoresTableBody.appendChild(tr);
+async function sendScore(name, score) {
+  const ip = await fetch('https://api.ipify.org?format=json')
+    .then(res => res.json())
+    .then(data => data.ip)
+    .catch(() => 'Unknown');
+
+  const country = await fetch(`https://ipapi.co/json/`)
+    .then(res => res.json())
+    .then(data => data.country_name)
+    .catch(() => 'Unknown');
+
+  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+    player_name: name,
+    player_score: score,
+    player_ip: ip,
+    player_country: country
+  }).then(() => {
+    alert('Game Over. Your score has been sent!');
+  }, (err) => {
+    console.error('Error sending email:', err);
   });
 }
-
-// Inicializa todo
-reset();
-renderHighScores();
-requestAnimationFrame(loop);
