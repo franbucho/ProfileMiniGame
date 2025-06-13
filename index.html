@@ -7,23 +7,28 @@
 </head>
 <body>
   <div class="container">
-    <h1>🐍 Dev MiniGame</h1>
+    <h1>🐍 Profile MiniGame</h1>
     <label for="playerName">Enter your name:</label>
     <input type="text" id="playerName" placeholder="Anonymous" />
     <button id="startBtn">Start Game</button>
     <div id="scoreDisplay">Score: 0</div>
     <canvas id="gameCanvas" width="400" height="400"></canvas>
 
+    <div id="gameOverScreen" class="overlay-container" style="display: none;">
+      <div class="game-over-box">
+        <h2>Game Over</h2>
+        <p>Your Final Score: <span id="finalScore">0</span></p>
+        <button id="playAgainBtn">Play Again</button>
+      </div>
+    </div>
+
     <div id="leaderboard">
       <h2>🏆 Leaderboard</h2>
       <ol id="leaderboardList"></ol>
-      <button id="clearLeaderboardBtn">Clear Leaderboard</button>
-    </div>
+      </div>
   </div>
 
-  <!-- EmailJS -->
   <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
-  <!-- Tu script del juego -->
   <script type="module" src="game.js"></script>
 </body>
 </html>
