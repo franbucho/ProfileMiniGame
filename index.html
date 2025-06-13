@@ -4,13 +4,18 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Profile MiniGame</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+  
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="container">
     
     <div id="setupScreen">
-      <h1>🐍 Profile MiniGame</h1> 
+      <h1>Profile MiniGame</h1> 
       <label for="playerName">Enter your name:</label>
       <input type="text" id="playerName" placeholder="Player" maxlength="15" />
       <button id="startBtn">Continue</button>
@@ -32,7 +37,7 @@
       </div>
     </div>
 
-    <div id="gameOverScreen" class="overlay-container" style="display: none;">
+    <div id="gameOverScreen" class="overlay-container">
       <div class="game-over-box">
         <h2>Game Over</h2>
         <p>Your Final Score: <span id="finalScore">0</span></p>
@@ -46,10 +51,11 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+  
   <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-firestore-compat.js"></script>
-
-  <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+  
   <script type="module" src="game.js"></script>
 </body>
 </html>
