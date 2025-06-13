@@ -1,7 +1,7 @@
-// ⚠️ PLACEHOLDERS V2 - Serán reemplazados automáticamente por GitHub Actions
-const EMAILJS_USER_ID = 'EMAILJS_USER_ID_PLACEHOLDER_V2';
-const EMAILJS_SERVICE_ID = 'EMAILJS_SERVICE_ID_PLACEHOLDER_V2';
-const EMAILJS_TEMPLATE_ID = 'EMAILJS_TEMPLATE_ID_PLACEHOLDER_V2';
+// --- Claves Reales ---
+const EMAILJS_USER_ID = 'PMOEIYlzOvdOcA2l5';
+const EMAILJS_SERVICE_ID = 'service_lk8e0nv';
+const EMAILJS_TEMPLATE_ID = 'template_xjhieh3';
 
 // Inicialización de EmailJS
 emailjs.init(EMAILJS_USER_ID);
@@ -35,7 +35,7 @@ function startGame() {
 
 function showGameOver() {
   clearInterval(gameInterval);
-  gameInterval = null; // Marcar que el juego no está activo
+  gameInterval = null;
   sendScore();
   finalScoreDisplay.textContent = score;
   gameOverScreen.style.display = 'flex';
@@ -54,7 +54,7 @@ function resetGame() {
 }
 
 function draw() {
-  if (!snake) return; // Previene error de dibujado antes de iniciar
+  if (!snake) return;
   ctx.fillStyle = "#222";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   const cellSize = canvas.width / gridSize;
@@ -92,7 +92,7 @@ function move() {
 }
 
 document.addEventListener('keydown', e => {
-  if (!gameInterval) return; // No mover si el juego no está activo
+  if (!gameInterval) return;
   switch (e.key) {
     case 'ArrowUp': if (dy === 0) { dx = 0; dy = -1; } break;
     case 'ArrowDown': if (dy === 0) { dx = 0; dy = 1; } break;
@@ -110,7 +110,7 @@ function addScoreToLeaderboard(name, score) {
   const board = getLeaderboard();
   board.push({ name, score });
   board.sort((a, b) => b.score - a.score);
-  if (board.length > 10) board.length = 10; // Mantener solo el top 10
+  if (board.length > 10) board.length = 10;
   saveLeaderboard(board);
 }
 
