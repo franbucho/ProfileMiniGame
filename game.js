@@ -1,7 +1,10 @@
-// ⚠️ PLACEHOLDERS - Serán reemplazados automáticamente por GitHub Actions
-const EMAILJS_USER_ID = 'PMOEIYlzOvdOcA2l5';
-const EMAILJS_SERVICE_ID = 'EMAILJS_SERVICE_ID_PLACEHOLDER';
-const EMAILJS_TEMPLATE_ID = 'EMAILJS_TEMPLATE_ID_PLACEHOLDER';
+// --- CÓDIGO TEMPORAL SOLO PARA LA PRUEBA ---
+
+const EMAILJS_USER_ID = 'PMOEIYlzOvdOcA2l5';         // Tu Public Key
+const EMAILJS_SERVICE_ID = 'service_lk8e0nv';    // Tu Service ID real
+const EMAILJS_TEMPLATE_ID = 'template_xjhieh3'; // Tu Template ID real
+
+// --- FIN DEL CÓDIGO DE PRUEBA ---
 
 // Inicialización de EmailJS
 emailjs.init(EMAILJS_USER_ID);
