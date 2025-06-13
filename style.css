@@ -1,35 +1,28 @@
 body {
-  margin: 0;
   background: #111;
+  color: #00ff88;
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
   height: 100vh;
-  font-family: sans-serif;
+  font-family: 'Courier New', Courier, monospace;
+  margin: 0;
 }
 
 #game {
-  position: relative;
-  width: 500px;
-  height: 500px;
-  background: #222;
-  border: 3px solid #00ff88;
-}
-
-#player {
-  position: absolute;
-  width: 40px;
-  height: 40px;
-  background: #00ff88;
-  top: 230px;
-  left: 230px;
-  transition: top 0.1s, left 0.1s;
+  text-align: center;
 }
 
 h1 {
-  color: #00ff88;
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  font-size: 18px;
+  margin-bottom: 10px;
+}
+
+#snake {
+  background: #222;
+  border: 4px solid #00ff88;
+}
+
+#score {
+  margin-top: 10px;
+  font-size: 20px;
 }
