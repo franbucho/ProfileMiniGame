@@ -10,14 +10,15 @@ body {
 }
 
 .container {
-  position: relative; /* Necesario para la superposición */
+  position: relative;
   background-color: #1f1f1f;
   padding: 20px;
   border-radius: 12px;
   box-shadow: 0 0 15px #00ff88aa;
   max-width: 500px;
+  width: 90%;
   text-align: center;
-  overflow: hidden; /* Evita que los elementos se salgan del borde redondeado */
+  overflow: hidden;
 }
 
 h1 {
@@ -59,6 +60,7 @@ button {
   background-color: #00ff88;
   color: #000;
   cursor: pointer;
+  transition: background-color 0.2s;
 }
 
 button:hover {
@@ -86,7 +88,7 @@ button:hover {
   padding-left: 20px;
 }
 
-/* --- Estilos para la pantalla de Game Over --- */
+/* Estilos para la pantalla de Game Over */
 .overlay-container {
   position: absolute;
   top: 0;
@@ -121,8 +123,41 @@ button:hover {
 }
 
 #playAgainBtn {
-  background-color: #00ff88;
-  color: #000;
   margin-top: 20px;
   font-weight: bold;
+}
+
+/* --- Estilos para Controles Móviles --- */
+.mobile-controls-container {
+  display: none; /* Ocultos en escritorio */
+  flex-direction: column;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.mobile-controls-container .middle-row {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.mobile-controls-container button {
+  width: 60px;
+  height: 60px;
+  font-size: 24px;
+  margin: 5px;
+  background-color: #333;
+  color: #00ff88;
+  border: 1px solid #00ff88;
+}
+
+.mobile-controls-container .middle-row button {
+  width: 80px;
+}
+
+/* Mostrar controles solo en pantallas pequeñas */
+@media (max-width: 768px) {
+  .mobile-controls-container {
+    display: flex;
+  }
 }

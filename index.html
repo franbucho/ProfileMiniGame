@@ -2,13 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Dev MiniGame</title> <!-- El título de la pestaña del navegador -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>Profile MiniGame</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="container">
-    <!-- El placeholder ahora está en el lugar correcto -->
-    <h1>Snake Cahllenge</h1> 
+    <h1>🐍 Profile MiniGame</h1> 
     
     <label for="playerName">Enter your name:</label>
     <input type="text" id="playerName" placeholder="Anonymous" />
@@ -27,6 +26,15 @@
     <div id="leaderboard">
       <h2>🏆 Leaderboard</h2>
       <ol id="leaderboardList"></ol>
+    </div>
+
+    <div id="mobileControls" class="mobile-controls-container">
+        <button id="upBtn">▲</button>
+        <div class="middle-row">
+            <button id="leftBtn">◄</button>
+            <button id="rightBtn">►</button>
+        </div>
+        <button id="downBtn">▼</button>
     </div>
   </div>
 

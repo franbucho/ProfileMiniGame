@@ -16,6 +16,13 @@ const gameOverScreen = document.getElementById('gameOverScreen');
 const finalScoreDisplay = document.getElementById('finalScore');
 const playAgainBtn = document.getElementById('playAgainBtn');
 
+// Controles Móviles
+const upBtn = document.getElementById('upBtn');
+const downBtn = document.getElementById('downBtn');
+const leftBtn = document.getElementById('leftBtn');
+const rightBtn = document.getElementById('rightBtn');
+
+
 // Variables del juego
 let snake, food, dx, dy, score, gameInterval;
 let gridSize = 20;
@@ -35,8 +42,8 @@ function startGame() {
 
 function showGameOver() {
   clearInterval(gameInterval);
-  gameInterval = null;
-  sendScore();
+  gameInterval = null; // Marcar que el juego no está activo
+  sendSmartNotification(); // Llamamos a la nueva función inteligente
   finalScoreDisplay.textContent = score;
   gameOverScreen.style.display = 'flex';
 }
@@ -91,27 +98,56 @@ function move() {
   }
 }
 
+// --- CONTROLES (TECLADO Y MÓVIL) ---
+
+function handleDirectionChange(newDx, newDy) {
+    if (!gameInterval) return;
+    // Prevenir que la serpiente se invierta
+    if (newDx !== 0 && dx !== 0) return;
+    if (newDy !== 0 && dy !== 0) return;
+
+    dx = newDx;
+    dy = newDy;
+}
+
 document.addEventListener('keydown', e => {
-  if (!gameInterval) return;
   switch (e.key) {
-    case 'ArrowUp': if (dy === 0) { dx = 0; dy = -1; } break;
-    case 'ArrowDown': if (dy === 0) { dx = 0; dy = 1; } break;
-    case 'ArrowLeft': if (dx === 0) { dx = -1; dy = 0; } break;
-    case 'ArrowRight': if (dx === 0) { dx = 1; dy = 0; } break;
+    case 'ArrowUp': handleDirectionChange(0, -1); break;
+    case 'ArrowDown': handleDirectionChange(0, 1); break;
+    case 'ArrowLeft': handleDirectionChange(-1, 0); break;
+    case 'ArrowRight': handleDirectionChange(1, 0); break;
   }
 });
 
-// --- FUNCIONES DEL LEADERBOARD ---
+upBtn.addEventListener('click', () => handleDirectionChange(0, -1));
+downBtn.addEventListener('click', () => handleDirectionChange(0, 1));
+leftBtn.addEventListener('click', () => handleDirectionChange(-1, 0));
+rightBtn.addEventListener('click', () => handleDirectionChange(1, 0));
 
-function getLeaderboard() { return JSON.parse(localStorage.getItem('profileMiniGameLeaderboard')) || []; }
-function saveLeaderboard(board) { localStorage.setItem('profileMiniGameLeaderboard', JSON.stringify(board)); }
 
-function addScoreToLeaderboard(name, score) {
-  const board = getLeaderboard();
-  board.push({ name, score });
+// --- FUNCIONES DEL LEADERBOARD (MEJORADAS) ---
+
+function getLeaderboard() { return JSON.parse(localStorage.getItem('profileMiniGameLeaderboard_v2')) || []; }
+function saveLeaderboard(board) { localStorage.setItem('profileMiniGameLeaderboard_v2', JSON.stringify(board)); }
+
+function addScoreToLeaderboard(name, newScore) {
+  let board = getLeaderboard();
+  const playerIndex = board.findIndex(p => p.name.toLowerCase() === name.toLowerCase());
+
+  if (playerIndex > -1) {
+    // El jugador existe, actualizar solo si la puntuación es mayor
+    if (newScore > board[playerIndex].score) {
+      board[playerIndex].score = newScore;
+    }
+  } else {
+    // El jugador es nuevo, añadirlo
+    board.push({ name, score: newScore });
+  }
+
   board.sort((a, b) => b.score - a.score);
   if (board.length > 10) board.length = 10;
   saveLeaderboard(board);
+  return board; // Devolver el tablero actualizado
 }
 
 function renderLeaderboard() {
@@ -128,34 +164,61 @@ function renderLeaderboard() {
   });
 }
 
-// --- FUNCIÓN DE ENVÍO DE CORREO ---
+// --- FUNCIÓN DE ENVÍO DE CORREO INTELIGENTE ---
 
-function sendScore() {
+function sendSmartNotification() {
   const name = document.getElementById('playerName').value.trim() || 'Anonymous';
-  addScoreToLeaderboard(name, score);
+  const currentScore = score;
+  const oldHighScore = parseInt(localStorage.getItem('profileMiniGameHighScore') || '0');
+
+  const updatedBoard = addScoreToLeaderboard(name, currentScore);
   renderLeaderboard();
-  
+
+  // --- Lógica para decidir si enviar el correo ---
+  let shouldSendEmail = false;
+  let emailReason = "";
+
+  // Condición 1: Nuevo High Score
+  if (currentScore > oldHighScore) {
+    shouldSendEmail = true;
+    emailReason = "New High Score!";
+    localStorage.setItem('profileMiniGameHighScore', currentScore);
+  }
+
+  // Condición 2: Entró al Top 5
+  const playerIndex = updatedBoard.findIndex(p => p.name.toLowerCase() === name.toLowerCase() && p.score === currentScore);
+  if (playerIndex !== -1 && playerIndex < 5) {
+      shouldSendEmail = true;
+      emailReason = emailReason ? emailReason + " & Entered Top 5!" : "Entered Top 5!";
+  }
+
+  if (!shouldSendEmail) {
+    console.log("Score not high enough for a notification. No email sent.");
+    return; // No hacer nada más si no se cumplen las condiciones
+  }
+
+  // --- Si se debe enviar, proceder ---
   fetch('https://ipapi.co/json/')
     .then(res => res.ok ? res.json() : Promise.reject('Network response was not ok'))
     .catch(error => {
-      console.warn('IP lookup failed. Sending email with default location data.', error);
+      console.warn('IP lookup failed.', error);
       return { country_name: "Not available", ip: "Not available" };
     })
     .then(data => {
       const params = {
-        player_name: name,
-        player_score: score,
+        player_name: `${name} (${emailReason})`, // Añadimos la razón al nombre para verla en el correo
+        player_score: currentScore,
         player_ip: data.ip || "Unknown",
         player_country: data.country_name || "Unknown"
       };
-      console.log('Sending email with these params:', params);
+      console.log('Sending SMART notification with these params:', params);
       return emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, params);
     })
-    .then(() => console.log("Email sent successfully!"))
+    .then(() => console.log("Smart notification sent successfully!"))
     .catch(err => console.error("EmailJS send failed:", err));
 }
 
-// --- EVENT LISTENERS E INICIALIZACIÓN ---
+// --- INICIALIZACIÓN ---
 
 startBtn.addEventListener('click', startGame);
 playAgainBtn.addEventListener('click', startGame);
