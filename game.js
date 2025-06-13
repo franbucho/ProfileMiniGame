@@ -11,6 +11,7 @@ const leaderboardList = document.getElementById('leaderboardList');
 const clearLeaderboardBtn = document.getElementById('clearLeaderboardBtn');
 
 let snake, food, dx, dy, score, gameInterval;
+let gridSize = 20;  // cantidad de cuadros horizontales y verticales
 
 // Ajustar tamaño del canvas para que siempre sea cuadrado y responsivo
 function resizeCanvas() {
@@ -24,58 +25,81 @@ window.addEventListener('resize', () => {
 });
 resizeCanvas();
 
+// Tamaño en pixeles de cada celda, según tamaño actual del canvas y gridSize
+function getCellSize() {
+  return canvas.width / gridSize;
+}
+
 function resetGame() {
-  snake = [{ x: 160, y: 160 }];
-  food = { x: 200, y: 200 };
-  dx = 20;  // ← Movimiento inicial hacia la derecha
+  // Colocamos la serpiente en medio de la grilla (coordenadas en número de celdas)
+  snake = [{ x: 8, y: 8 }];
+  // La comida en otra posición al azar
+  food = {
+    x: Math.floor(Math.random() * gridSize),
+    y: Math.floor(Math.random() * gridSize)
+  };
+  dx = 1;  // Movimiento a la derecha (en celdas)
   dy = 0;
   score = 0;
   scoreDisplay.textContent = "Score: 0";
 }
 
 function draw() {
+  // Fondo
   ctx.fillStyle = "#222";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  ctx.fillStyle = "#00ff88";
-  snake.forEach(part => ctx.fillRect(part.x, part.y, 20, 20));
+  const cellSize = getCellSize();
 
+  // Dibujar serpiente
+  ctx.fillStyle = "#00ff88";
+  snake.forEach(part => {
+    ctx.fillRect(part.x * cellSize, part.y * cellSize, cellSize, cellSize);
+  });
+
+  // Dibujar comida
   ctx.fillStyle = "red";
-  ctx.fillRect(food.x, food.y, 20, 20);
+  ctx.fillRect(food.x * cellSize, food.y * cellSize, cellSize, cellSize);
 }
 
 function move() {
   const head = { x: snake[0].x + dx, y: snake[0].y + dy };
-  snake.unshift(head);
 
-  if (head.x === food.x && head.y === food.y) {
-    score += 10;
-    scoreDisplay.textContent = `Score: ${score}`;
-    food = {
-      x: Math.floor(Math.random() * (canvas.width / 20)) * 20,
-      y: Math.floor(Math.random() * (canvas.height / 20)) * 20
-    };
-  } else {
-    snake.pop();
-  }
-
+  // Checkear límites y choque con cuerpo
   if (
-    head.x < 0 || head.x >= canvas.width ||
-    head.y < 0 || head.y >= canvas.height ||
+    head.x < 0 || head.x >= gridSize ||
+    head.y < 0 || head.y >= gridSize ||
     snake.slice(1).some(p => p.x === head.x && p.y === head.y)
   ) {
     clearInterval(gameInterval);
     sendScore();
     alert("Game Over! Score: " + score);
+    return;
+  }
+
+  snake.unshift(head);
+
+  if (head.x === food.x && head.y === food.y) {
+    score += 10;
+    scoreDisplay.textContent = `Score: ${score}`;
+    // Reubicar comida (evitar que salga encima de la serpiente)
+    do {
+      food = {
+        x: Math.floor(Math.random() * gridSize),
+        y: Math.floor(Math.random() * gridSize)
+      };
+    } while (snake.some(p => p.x === food.x && p.y === food.y));
+  } else {
+    snake.pop();
   }
 }
 
 document.addEventListener('keydown', e => {
   switch (e.key) {
-    case 'ArrowUp': if (dy === 0) { dx = 0; dy = -20; } break;
-    case 'ArrowDown': if (dy === 0) { dx = 0; dy = 20; } break;
-    case 'ArrowLeft': if (dx === 0) { dx = -20; dy = 0; } break;
-    case 'ArrowRight': if (dx === 0) { dx = 20; dy = 0; } break;
+    case 'ArrowUp': if (dy === 0) { dx = 0; dy = -1; } break;
+    case 'ArrowDown': if (dy === 0) { dx = 0; dy = 1; } break;
+    case 'ArrowLeft': if (dx === 0) { dx = -1; dy = 0; } break;
+    case 'ArrowRight': if (dx === 0) { dx = 1; dy = 0; } break;
   }
 });
 
@@ -116,11 +140,9 @@ clearLeaderboardBtn.addEventListener('click', () => {
   renderLeaderboard();
 });
 
-// Modificar sendScore para agregar puntaje localmente y mostrar leaderboard
 function sendScore() {
   const name = document.getElementById('playerName').value.trim() || 'Anonymous';
 
-  // Guardar en leaderboard local
   addScoreToLeaderboard(name, score);
   renderLeaderboard();
 
@@ -144,7 +166,7 @@ function sendScore() {
 }
 
 startBtn.addEventListener('click', () => {
-  clearInterval(gameInterval);  // Detener cualquier juego anterior
+  clearInterval(gameInterval);
   resetGame();
   gameInterval = setInterval(() => {
     move();
