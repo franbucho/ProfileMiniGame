@@ -7,10 +7,13 @@ body {
   align-items: center;
   justify-content: center;
   height: 100vh;
+  /* Mejoras para móvil */
+  -webkit-tap-highlight-color: transparent; /* Evita el destello gris al tocar */
+  touch-action: manipulation; /* Evita el zoom por doble toque */
 }
 
 .container {
-  position: relative; /* Necesario para la superposición */
+  position: relative;
   background-color: #1f1f1f;
   padding: 20px;
   border-radius: 12px;
@@ -18,7 +21,8 @@ body {
   max-width: 500px;
   width: 90%;
   text-align: center;
-  overflow: hidden; /* Evita que los elementos se salgan del borde redondeado */
+  overflow: hidden;
+  user-select: none; /* Evita que se seleccione el texto */
 }
 
 h1 {
@@ -129,7 +133,7 @@ button:hover {
 
 /* Estilos para Controles Móviles */
 .mobile-controls-container {
-  display: none; /* Ocultos en escritorio por defecto */
+  display: none;
   flex-direction: column;
   align-items: center;
   margin-top: 20px;
@@ -151,17 +155,21 @@ button:hover {
   border: 1px solid #00ff88;
 }
 
+.mobile-controls-container button:active { /* Feedback visual al tocar */
+  background-color: #00ff88;
+  color: #1f1f1f;
+}
+
 .mobile-controls-container .middle-row button {
   width: 80px;
 }
 
-/* --- ESTILOS PARA TELÉFONOS Y PANTALLAS PEQUEÑAS --- */
+/* Estilos para Teléfonos y Pantallas Pequeñas */
 @media (max-width: 768px) {
   body {
-    /* Permitir scroll si es absolutamente necesario, en lugar de cortar contenido */
     height: auto;
     min-height: 100vh;
-    padding: 10px 0; /* Añade un pequeño espacio si el contenido es muy alto */
+    padding: 10px 0;
   }
 
   .container {
@@ -170,7 +178,7 @@ button:hover {
   }
 
   h1 {
-    font-size: 1.5rem; /* 24px */
+    font-size: 1.5rem;
     margin-top: 0;
     margin-bottom: 10px;
   }
@@ -194,16 +202,15 @@ button:hover {
   #leaderboard {
     margin-top: 15px;
     padding: 8px 15px;
-    max-height: 120px; /* Reducir drásticamente la altura del leaderboard */
+    max-height: 120px;
   }
 
   #leaderboard h2 {
-    font-size: 1.1rem; /* 18px */
+    font-size: 1.1rem;
     margin-bottom: 5px;
   }
   
   .mobile-controls-container {
-    display: flex; /* Mostrar los controles en móvil */
-    margin-top: 15px;
+    display: flex;
   }
 }
