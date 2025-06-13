@@ -10,7 +10,7 @@ body {
 }
 
 .container {
-  position: relative;
+  position: relative; /* Necesario para la superposición */
   background-color: #1f1f1f;
   padding: 20px;
   border-radius: 12px;
@@ -18,7 +18,7 @@ body {
   max-width: 500px;
   width: 90%;
   text-align: center;
-  overflow: hidden;
+  overflow: hidden; /* Evita que los elementos se salgan del borde redondeado */
 }
 
 h1 {
@@ -127,9 +127,9 @@ button:hover {
   font-weight: bold;
 }
 
-/* --- Estilos para Controles Móviles --- */
+/* Estilos para Controles Móviles */
 .mobile-controls-container {
-  display: none; /* Ocultos en escritorio */
+  display: none; /* Ocultos en escritorio por defecto */
   flex-direction: column;
   align-items: center;
   margin-top: 20px;
@@ -155,9 +155,55 @@ button:hover {
   width: 80px;
 }
 
-/* Mostrar controles solo en pantallas pequeñas */
+/* --- ESTILOS PARA TELÉFONOS Y PANTALLAS PEQUEÑAS --- */
 @media (max-width: 768px) {
+  body {
+    /* Permitir scroll si es absolutamente necesario, en lugar de cortar contenido */
+    height: auto;
+    min-height: 100vh;
+    padding: 10px 0; /* Añade un pequeño espacio si el contenido es muy alto */
+  }
+
+  .container {
+    padding: 15px;
+    width: 95%;
+  }
+
+  h1 {
+    font-size: 1.5rem; /* 24px */
+    margin-top: 0;
+    margin-bottom: 10px;
+  }
+  
+  label {
+    margin-bottom: 0;
+  }
+
+  input, button {
+    margin: 8px 5px;
+  }
+  
+  #scoreDisplay {
+    margin: 10px 0;
+  }
+
+  #gameCanvas {
+    margin-top: 10px;
+  }
+
+  #leaderboard {
+    margin-top: 15px;
+    padding: 8px 15px;
+    max-height: 120px; /* Reducir drásticamente la altura del leaderboard */
+  }
+
+  #leaderboard h2 {
+    font-size: 1.1rem; /* 18px */
+    margin-bottom: 5px;
+  }
+  
   .mobile-controls-container {
-    display: flex;
+    display: flex; /* Mostrar los controles en móvil */
+    margin-top: 15px;
   }
 }
