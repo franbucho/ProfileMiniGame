@@ -10,12 +10,14 @@ body {
 }
 
 .container {
+  position: relative; /* Necesario para la superposición */
   background-color: #1f1f1f;
   padding: 20px;
   border-radius: 12px;
   box-shadow: 0 0 15px #00ff88aa;
   max-width: 500px;
   text-align: center;
+  overflow: hidden; /* Evita que los elementos se salgan del borde redondeado */
 }
 
 h1 {
@@ -84,14 +86,43 @@ button:hover {
   padding-left: 20px;
 }
 
-#clearLeaderboardBtn {
-  margin-top: 10px;
-  background-color: #cc0000;
-  color: white;
+/* --- Estilos para la pantalla de Game Over --- */
+.overlay-container {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
-  font-weight: bold;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.8);
+  z-index: 10;
 }
 
-#clearLeaderboardBtn:hover {
-  background-color: #aa0000;
+.game-over-box {
+  background-color: #1f1f1f;
+  padding: 20px 40px;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 0 20px #ff4444aa;
+  border: 1px solid #ff4444;
+}
+
+.game-over-box h2 {
+  color: #ff4444;
+  border-bottom: none;
+  margin-bottom: 10px;
+}
+
+.game-over-box p {
+  font-size: 18px;
+  color: #e0e0e0;
+}
+
+#playAgainBtn {
+  background-color: #00ff88;
+  color: #000;
+  margin-top: 20px;
+  font-weight: bold;
 }
