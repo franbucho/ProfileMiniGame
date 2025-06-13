@@ -1,1 +1,36 @@
+# .github/workflows/deploy.yml
 
+name: Deploy Game to GitHub Pages
+
+# Se ejecuta cada vez que haces un push a la rama 'main'
+on:
+  push:
+    branches:
+      - main
+
+# Permisos para que la acción pueda escribir en la rama de despliegue
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Descarga el código de tu repositorio
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Reemplaza los placeholders en game.js con los secretos
+      - name: Replace EmailJS Credentials
+        run: |
+          sed -i 's/EMAILJS_USER_ID_PLACEHOLDER/${{ secrets.EMAILJS_USER_ID }}/g' game.js
+          sed -i 's/EMAILJS_SERVICE_ID_PLACEHOLDER/${{ secrets.EMAILJS_SERVICE_ID }}/g' game.js
+          sed -i 's/EMAILJS_TEMPLATE_ID_PLACEHOLDER/${{ secrets.EMAILJS_TEMPLATE_ID }}/g' game.js
+
+      # 3. Despliega la carpeta completa a la rama 'gh-pages'
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: .
+          # La opción 'publish_dir: .' publica todo el contenido del repositorio
