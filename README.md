@@ -10,7 +10,7 @@ A simple but fun Snake game implemented in vanilla JavaScript,  HTML5 Canvas, an
   - Save your score locally with your name (stored in browser localStorage).
   - See the top 10 high scores in a leaderboard.
   - Send your score directly to Francisco Villahermosa via email .
-- Responsive and retro green-on-black design.
+- Responsive and retro green-on-black designn.
 
 ---
 
