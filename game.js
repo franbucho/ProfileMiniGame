@@ -1,5 +1,11 @@
-import { EMAILJS_USER_ID, EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID } from './config.js';
+// game.js
 
+// ⚠️ PLACEHOLDERS - Serán reemplazados automáticamente por GitHub Actions
+const EMAILJS_USER_ID = 'EMAILJS_USER_ID_PLACEHOLDER';
+const EMAILJS_SERVICE_ID = 'EMAILJS_SERVICE_ID_PLACEHOLDER';
+const EMAILJS_TEMPLATE_ID = 'EMAILJS_TEMPLATE_ID_PLACEHOLDER';
+
+// El resto del código es idéntico
 emailjs.init(EMAILJS_USER_ID);
 
 const canvas = document.getElementById('gameCanvas');
@@ -11,13 +17,12 @@ const leaderboardList = document.getElementById('leaderboardList');
 const clearLeaderboardBtn = document.getElementById('clearLeaderboardBtn');
 
 let snake, food, dx, dy, score, gameInterval;
-let gridSize = 20;  // cantidad de cuadros horizontales y verticales
+let gridSize = 20;
 
-// Ajustar tamaño del canvas para que siempre sea cuadrado y responsivo
 function resizeCanvas() {
   const containerWidth = canvas.parentElement.clientWidth;
   canvas.width = containerWidth > 400 ? 400 : containerWidth;
-  canvas.height = canvas.width; // Mantener cuadrado
+  canvas.height = canvas.width;
 }
 window.addEventListener('resize', () => {
   resizeCanvas();
@@ -25,39 +30,33 @@ window.addEventListener('resize', () => {
 });
 resizeCanvas();
 
-// Tamaño en pixeles de cada celda, según tamaño actual del canvas y gridSize
 function getCellSize() {
   return canvas.width / gridSize;
 }
 
 function resetGame() {
-  // Colocamos la serpiente en medio de la grilla (coordenadas en número de celdas)
   snake = [{ x: 8, y: 8 }];
-  // La comida en otra posición al azar
   food = {
     x: Math.floor(Math.random() * gridSize),
     y: Math.floor(Math.random() * gridSize)
   };
-  dx = 1;  // Movimiento a la derecha (en celdas)
+  dx = 1;
   dy = 0;
   score = 0;
   scoreDisplay.textContent = "Score: 0";
 }
 
 function draw() {
-  // Fondo
   ctx.fillStyle = "#222";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   const cellSize = getCellSize();
 
-  // Dibujar serpiente
   ctx.fillStyle = "#00ff88";
   snake.forEach(part => {
     ctx.fillRect(part.x * cellSize, part.y * cellSize, cellSize, cellSize);
   });
 
-  // Dibujar comida
   ctx.fillStyle = "red";
   ctx.fillRect(food.x * cellSize, food.y * cellSize, cellSize, cellSize);
 }
@@ -65,7 +64,6 @@ function draw() {
 function move() {
   const head = { x: snake[0].x + dx, y: snake[0].y + dy };
 
-  // Checkear límites y choque con cuerpo
   if (
     head.x < 0 || head.x >= gridSize ||
     head.y < 0 || head.y >= gridSize ||
@@ -82,7 +80,6 @@ function move() {
   if (head.x === food.x && head.y === food.y) {
     score += 10;
     scoreDisplay.textContent = `Score: ${score}`;
-    // Reubicar comida (evitar que salga encima de la serpiente)
     do {
       food = {
         x: Math.floor(Math.random() * gridSize),
@@ -103,7 +100,6 @@ document.addEventListener('keydown', e => {
   }
 });
 
-// --- Leaderboard functions ---
 function getLeaderboard() {
   const data = localStorage.getItem('profileMiniGameLeaderboard');
   return data ? JSON.parse(data) : [];
@@ -117,7 +113,7 @@ function addScoreToLeaderboard(name, score) {
   const board = getLeaderboard();
   board.push({ name, score });
   board.sort((a, b) => b.score - a.score);
-  if (board.length > 10) board.length = 10; // Solo top 10
+  if (board.length > 10) board.length = 10;
   saveLeaderboard(board);
 }
 
@@ -174,5 +170,4 @@ startBtn.addEventListener('click', () => {
   }, 150);
 });
 
-// Mostrar leaderboard al cargar la página
 renderLeaderboard();
