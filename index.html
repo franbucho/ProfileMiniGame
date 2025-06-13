@@ -16,23 +16,19 @@
       <button id="startBtn">Continue</button>
     </div>
 
-    <div class="main-content">
-      <div id="gameScreen" style="display: none;">
+    <div id="gameScreen" style="display: none;">
+      <div class="game-info">
         <div id="scoreDisplay">Score: 0</div>
-        <canvas id="gameCanvas" width="400" height="400"></canvas>
-        <div id="mobileControls" class="mobile-controls-container">
-            <button id="upBtn">▲</button>
-            <div class="middle-row">
-                <button id="leftBtn">◄</button>
-                <button id="rightBtn">►</button>
-            </div>
-            <button id="downBtn">▼</button>
-        </div>
+        <div id="playCounterDisplay">Plays: ...</div>
       </div>
-
-      <div id="leaderboard">
-        <h2>🏆 Leaderboard</h2>
-        <ol id="leaderboardList"></ol>
+      <canvas id="gameCanvas" width="400" height="400"></canvas>
+      <div id="mobileControls" class="mobile-controls-container">
+          <button id="upBtn">▲</button>
+          <div class="middle-row">
+              <button id="leftBtn">◄</button>
+              <button id="rightBtn">►</button>
+          </div>
+          <button id="downBtn">▼</button>
       </div>
     </div>
 
@@ -42,6 +38,11 @@
         <p>Your Final Score: <span id="finalScore">0</span></p>
         <button id="playAgainBtn">Play Again</button>
       </div>
+    </div>
+
+    <div id="leaderboard">
+      <h2>🏆 Leaderboard</h2>
+      <ol id="leaderboardList"></ol>
     </div>
   </div>
 
