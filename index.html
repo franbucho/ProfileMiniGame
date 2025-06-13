@@ -2,191 +2,22 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Snake Game with Score Submission</title>
-  <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
-  <style>
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #121212;
-      color: #e0e0e0;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-    }
-    canvas {
-      background: #1f1f1f;
-      border: 3px solid #00ff88;
-      box-shadow: 0 0 15px #00ff88aa;
-    }
-    #startBtn {
-      background-color: #00ff88;
-      color: #121212;
-      border: none;
-      padding: 10px 20px;
-      font-size: 16px;
-      margin-top: 20px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: bold;
-    }
-    #formContainer {
-      display: none;
-      flex-direction: column;
-      margin-top: 20px;
-      background: #1f1f1f;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 0 15px #00ff88aa;
-      max-width: 300px;
-      width: 100%;
-    }
-    #formContainer input {
-      margin-bottom: 10px;
-      padding: 10px;
-      border: none;
-      border-radius: 6px;
-      font-size: 16px;
-    }
-    #formContainer button {
-      background-color: #00ff88;
-      color: #121212;
-      border: none;
-      padding: 10px;
-      font-size: 16px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: bold;
-    }
-  </style>
+  <title>Profile MiniGame</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h1>🐍 Mini Snake Game</h1>
-  <canvas id="gameCanvas" width="400" height="400"></canvas>
-  <button id="startBtn">Start Game</button>
-
-  <div id="formContainer">
-    <input type="text" id="playerName" placeholder="Your Name" required />
-    <button onclick="submitScore()">Submit Score</button>
+  <div class="container">
+    <h1>🐍 Profile MiniGame</h1>
+    <label for="playerName">Enter your name:</label>
+    <input type="text" id="playerName" placeholder="Anonymous" />
+    <button id="startBtn">Start Game</button>
+    <div id="scoreDisplay">Score: 0</div>
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
   </div>
 
-  <script type="module">
-    import {
-      EMAILJS_USER_ID,
-      EMAILJS_SERVICE_ID,
-      EMAILJS_TEMPLATE_ID
-    } from './config.js';
-
-    emailjs.init(EMAILJS_USER_ID);
-
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    const box = 20;
-    const startBtn = document.getElementById('startBtn');
-    const formContainer = document.getElementById('formContainer');
-    const playerNameInput = document.getElementById('playerName');
-
-    let snake;
-    let direction;
-    let food;
-    let score;
-    let game;
-
-    startBtn.addEventListener('click', startGame);
-
-    function startGame() {
-      snake = [{ x: 9 * box, y: 10 * box }];
-      direction = null;
-      score = 0;
-      food = {
-        x: Math.floor(Math.random() * 19) * box,
-        y: Math.floor(Math.random() * 19) * box
-      };
-      startBtn.style.display = 'none';
-      formContainer.style.display = 'none';
-      document.addEventListener('keydown', directionHandler);
-      game = setInterval(draw, 150);
-    }
-
-    function directionHandler(event) {
-      if (event.key === 'ArrowLeft' && direction !== 'RIGHT') direction = 'LEFT';
-      else if (event.key === 'ArrowUp' && direction !== 'DOWN') direction = 'UP';
-      else if (event.key === 'ArrowRight' && direction !== 'LEFT') direction = 'RIGHT';
-      else if (event.key === 'ArrowDown' && direction !== 'UP') direction = 'DOWN';
-    }
-
-    function draw() {
-      ctx.fillStyle = '#1f1f1f';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      for (let i = 0; i < snake.length; i++) {
-        ctx.fillStyle = i === 0 ? '#00ff88' : '#2aff99';
-        ctx.fillRect(snake[i].x, snake[i].y, box, box);
-      }
-
-      ctx.fillStyle = '#ff0055';
-      ctx.fillRect(food.x, food.y, box, box);
-
-      let snakeX = snake[0].x;
-      let snakeY = snake[0].y;
-
-      if (direction === 'LEFT') snakeX -= box;
-      if (direction === 'RIGHT') snakeX += box;
-      if (direction === 'UP') snakeY -= box;
-      if (direction === 'DOWN') snakeY += box;
-
-      if (snakeX === food.x && snakeY === food.y) {
-        score++;
-        food = {
-          x: Math.floor(Math.random() * 19) * box,
-          y: Math.floor(Math.random() * 19) * box
-        };
-      } else {
-        snake.pop();
-      }
-
-      const newHead = { x: snakeX, y: snakeY };
-
-      if (
-        snakeX < 0 || snakeX >= canvas.width ||
-        snakeY < 0 || snakeY >= canvas.height ||
-        collision(newHead, snake)
-      ) {
-        clearInterval(game);
-        formContainer.style.display = 'flex';
-        return;
-      }
-
-      snake.unshift(newHead);
-    }
-
-    function collision(head, array) {
-      return array.some(segment => segment.x === head.x && segment.y === head.y);
-    }
-
-    async function submitScore() {
-      const name = playerNameInput.value.trim();
-      if (!name) return alert('Please enter your name.');
-
-      const ipData = await fetch('https://ipapi.co/json').then(res => res.json());
-
-      const templateParams = {
-        player_name: name,
-        player_score: score,
-        player_ip: ipData.ip,
-        player_country: ipData.country_name
-      };
-
-      emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams)
-        .then(() => {
-          alert('Score submitted successfully!');
-          location.reload();
-        })
-        .catch(err => alert('Error sending email: ' + err));
-    }
-  </script>
+  <!-- EmailJS -->
+  <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+  <!-- Tu script del juego -->
+  <script type="module" src="game.js"></script>
 </body>
 </html>
