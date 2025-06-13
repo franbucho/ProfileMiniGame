@@ -23,7 +23,7 @@ jobs:
       # 2. Reemplaza todos los placeholders
       - name: Replace Placeholders
         run: |
-          sed -i 's/GAME_TITLE_PLACEHOLDER/${{ secrets.GAME_TITLE_PLACEHOLDER }}/g' index.html
+          sed -i 's/GAME_TITLE_PLACEHOLDER/${{ secrets.GAME_TITLE }}/g' index.html
           sed -i 's/EMAILJS_USER_ID_PLACEHOLDER_V2/${{ secrets.EMAILJS_USER_ID }}/g' game.js
           sed -i 's/EMAILJS_SERVICE_ID_PLACEHOLDER_V2/${{ secrets.EMAILJS_SERVICE_ID }}/g' game.js
           sed -i 's/EMAILJS_TEMPLATE_ID_PLACEHOLDER_V2/${{ secrets.EMAILJS_TEMPLATE_ID }}/g' game.js
