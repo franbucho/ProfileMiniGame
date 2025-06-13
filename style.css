@@ -1,6 +1,6 @@
 body {
   margin: 0;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: 'Poppins', sans-serif; /* Fuente moderna por defecto */
   background-color: #121212;
   color: #e0e0e0;
   display: flex;
@@ -25,11 +25,13 @@ body {
 }
 
 h1 {
+  font-family: 'Press Start 2P', cursive; /* Fuente retro para el título */
   color: #00ff88;
-  font-size: 2.5rem;
+  font-size: 2.2rem;
+  text-shadow: 0 0 5px #00ff88, 0 0 10px #00ff88;
 }
 
-/* --- Layout Principal --- */
+/* Layout Principal */
 .main-content {
   display: flex;
   justify-content: center;
@@ -39,19 +41,20 @@ h1 {
 }
 
 #gameScreen {
-  display: none; /* Se controla con JS */
+  display: none;
   flex-direction: column;
   align-items: center;
   flex-basis: 500px;
 }
 
 #gameCanvas {
-  background: #222;
+  background: #2c2c2c; /* Fondo del canvas ligeramente más claro */
   border: 2px solid #00ff88;
   width: 100%;
   max-width: 450px;
   aspect-ratio: 1 / 1;
   display: block;
+  border-radius: 8px; /* Bordes redondeados para el canvas */
 }
 
 .game-info {
@@ -64,7 +67,8 @@ h1 {
 }
 
 #scoreDisplay, #playCounterDisplay {
-  font-size: 24px;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 1.2rem;
   color: #00ff88;
   margin: 0;
 }
@@ -75,21 +79,30 @@ input, button {
   border: none;
   border-radius: 6px;
   font-size: 16px;
+  font-family: 'Poppins', sans-serif;
 }
 
 input {
   width: 60%;
+  background-color: #333;
+  color: white;
+  border: 1px solid #555;
 }
 
 button {
   background-color: #00ff88;
   color: #000;
   cursor: pointer;
-  transition: background-color 0.2s;
+  font-weight: bold;
+  transition: background-color 0.2s, color 0.2s, transform 0.1s;
 }
 
 button:hover {
-  background-color: #00cc66;
+  background-color: #00dd77;
+}
+
+button:active {
+  transform: scale(0.95);
 }
 
 /* Leaderboard styles */
@@ -105,6 +118,8 @@ button:hover {
 }
 
 #leaderboard h2 {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 1.2rem;
   margin-top: 0;
   text-align: center;
 }
@@ -113,7 +128,7 @@ button:hover {
   padding-left: 20px;
 }
 
-/* Overlay de Game Over */
+/* Overlay de Game Over con animación */
 .overlay-container {
   position: absolute;
   top: 0;
@@ -125,6 +140,14 @@ button:hover {
   align-items: center;
   background-color: rgba(0, 0, 0, 0.8);
   z-index: 10;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.4s, visibility 0.4s;
+}
+
+.overlay-container.visible {
+  opacity: 1;
+  visibility: visible;
 }
 
 .game-over-box {
@@ -137,6 +160,7 @@ button:hover {
 }
 
 .game-over-box h2 {
+  font-family: 'Press Start 2P', cursive;
   color: #ff4444;
   border-bottom: none;
   margin-bottom: 10px;
@@ -149,15 +173,14 @@ button:hover {
 
 #playAgainBtn {
   margin-top: 20px;
-  font-weight: bold;
 }
 
-/* Controles Móviles (Ocultos en Escritorio) */
+/* Controles Móviles */
 .mobile-controls-container {
   display: none;
 }
 
-/* --- ESTILOS PARA TELÉFONOS Y PANTALLAS PEQUEÑAS --- */
+/* --- ESTILOS PARA TELÉFONOS --- */
 @media (max-width: 880px) {
   body {
     height: auto;
@@ -183,7 +206,7 @@ button:hover {
   }
 
   h1 {
-    font-size: 1.8rem;
+    font-size: 1.5rem;
     margin-top: 0;
     margin-bottom: 10px;
   }
@@ -198,10 +221,9 @@ button:hover {
   }
 
   #scoreDisplay, #playCounterDisplay {
-    font-size: 20px;
+    font-size: 1rem;
   }
   
-  /* Mostrar y estilizar controles móviles */
   .mobile-controls-container {
     display: flex;
     flex-direction: column;
