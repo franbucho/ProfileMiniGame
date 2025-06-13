@@ -21,11 +21,9 @@ function draw() {
   ctx.fillStyle = "#222";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Draw snake
   ctx.fillStyle = "#00ff88";
   snake.forEach(part => ctx.fillRect(part.x, part.y, 20, 20));
 
-  // Draw food
   ctx.fillStyle = "red";
   ctx.fillRect(food.x, food.y, 20, 20);
 }
@@ -45,7 +43,11 @@ function move() {
     snake.pop();
   }
 
-  if (head.x < 0 || head.x >= 400 || head.y < 0 || head.y >= 400 || snake.slice(1).some(p => p.x === head.x && p.y === head.y)) {
+  if (
+    head.x < 0 || head.x >= 400 ||
+    head.y < 0 || head.y >= 400 ||
+    snake.slice(1).some(p => p.x === head.x && p.y === head.y)
+  ) {
     clearInterval(gameInterval);
     sendScore();
     alert("Game Over! Score: " + score);
