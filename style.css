@@ -26,6 +26,13 @@ h1 {
   background: #222;
   margin-top: 20px;
   border: 2px solid #00ff88;
+  width: 100%;
+  height: auto;
+  max-width: 400px;
+  aspect-ratio: 1 / 1;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 #scoreDisplay {
@@ -54,4 +61,37 @@ button {
 
 button:hover {
   background-color: #00cc66;
+}
+
+/* Leaderboard styles */
+#leaderboard {
+  margin-top: 20px;
+  text-align: left;
+  color: #00ff88;
+  background-color: #0d0d0d;
+  padding: 10px 20px;
+  border-radius: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+#leaderboard h2 {
+  margin-top: 0;
+  text-align: center;
+}
+
+#leaderboardList {
+  padding-left: 20px;
+}
+
+#clearLeaderboardBtn {
+  margin-top: 10px;
+  background-color: #cc0000;
+  color: white;
+  width: 100%;
+  font-weight: bold;
+}
+
+#clearLeaderboardBtn:hover {
+  background-color: #aa0000;
 }
