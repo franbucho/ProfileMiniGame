@@ -12,7 +12,8 @@ let snake, food, dx, dy, score, gameInterval;
 function resetGame() {
   snake = [{ x: 160, y: 160 }];
   food = { x: 200, y: 200 };
-  dx = dy = 0;
+  dx = 20;  // ← Movimiento inicial hacia la derecha
+  dy = 0;
   score = 0;
   scoreDisplay.textContent = "Score: 0";
 }
@@ -86,6 +87,7 @@ document.addEventListener('keydown', e => {
 });
 
 startBtn.addEventListener('click', () => {
+  clearInterval(gameInterval);  // Detener cualquier juego anterior
   resetGame();
   gameInterval = setInterval(() => {
     move();
