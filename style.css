@@ -7,7 +7,6 @@ body {
   align-items: center;
   justify-content: center;
   height: 100vh;
-  /* Mejoras para móvil */
   -webkit-tap-highlight-color: transparent; 
   touch-action: manipulation;
 }
@@ -15,10 +14,10 @@ body {
 .container {
   position: relative;
   background-color: #1f1f1f;
-  padding: 20px;
+  padding: 30px; /* Más padding en escritorio */
   border-radius: 12px;
   box-shadow: 0 0 15px #00ff88aa;
-  max-width: 500px;
+  max-width: 850px; /* Contenedor más ancho para el layout de 2 columnas */
   width: 90%;
   text-align: center;
   overflow: hidden;
@@ -27,29 +26,42 @@ body {
 
 h1 {
   color: #00ff88;
+  font-size: 2.5rem; /* Título más grande en escritorio */
+}
+
+/* --- Layout Principal --- */
+.main-content {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 30px; /* Espacio entre el juego y el leaderboard */
+  margin-top: 20px;
+}
+
+#gameScreen {
+  display: none; /* Se controla con JS */
+  flex-direction: column;
+  align-items: center;
+  flex-basis: 500px; /* Ancho base para la columna del juego */
 }
 
 #gameCanvas {
   background: #222;
-  margin-top: 10px; /* Reducido */
   border: 2px solid #00ff88;
   width: 100%;
-  height: auto;
-  max-width: 400px;
+  max-width: 450px;
   aspect-ratio: 1 / 1;
   display: block;
-  margin-left: auto;
-  margin-right: auto;
 }
 
 #scoreDisplay {
-  margin-bottom: 10px; /* Reducido */
-  font-size: 20px;
+  margin-bottom: 15px;
+  font-size: 24px;
   color: #00ff88;
 }
 
 input, button {
-  padding: 8px 12px;
+  padding: 10px 16px;
   margin: 10px 5px;
   border: none;
   border-radius: 6px;
@@ -73,13 +85,13 @@ button:hover {
 
 /* Leaderboard styles */
 #leaderboard {
-  margin-top: 20px;
+  flex-basis: 300px; /* Ancho base para la columna del leaderboard */
   text-align: left;
   color: #00ff88;
   background-color: #0d0d0d;
-  padding: 10px 20px;
+  padding: 15px 25px;
   border-radius: 8px;
-  max-height: 200px;
+  max-height: 450px; /* Más alto en escritorio */
   overflow-y: auto;
 }
 
@@ -92,7 +104,7 @@ button:hover {
   padding-left: 20px;
 }
 
-/* Estilos para la pantalla de Game Over */
+/* Overlay de Game Over */
 .overlay-container {
   position: absolute;
   top: 0;
@@ -108,7 +120,7 @@ button:hover {
 
 .game-over-box {
   background-color: #1f1f1f;
-  padding: 20px 40px;
+  padding: 30px 50px;
   border-radius: 12px;
   text-align: center;
   box-shadow: 0 0 20px #ff4444aa;
@@ -131,41 +143,13 @@ button:hover {
   font-weight: bold;
 }
 
-/* Estilos para Controles Móviles */
+/* Controles Móviles (Ocultos en Escritorio) */
 .mobile-controls-container {
   display: none;
-  flex-direction: column;
-  align-items: center;
-  margin-top: 15px; /* Reducido */
 }
 
-.mobile-controls-container .middle-row {
-  display: flex;
-  justify-content: center;
-  width: 100%;
-}
-
-.mobile-controls-container button {
-  width: 60px;
-  height: 60px;
-  font-size: 24px;
-  margin: 5px;
-  background-color: #333;
-  color: #00ff88;
-  border: 1px solid #00ff88;
-}
-
-.mobile-controls-container button:active {
-  background-color: #00ff88;
-  color: #1f1f1f;
-}
-
-.mobile-controls-container .middle-row button {
-  width: 80px;
-}
-
-/* Estilos para Teléfonos y Pantallas Pequeñas */
-@media (max-width: 768px) {
+/* --- ESTILOS PARA TELÉFONOS Y PANTALLAS PEQUEÑAS --- */
+@media (max-width: 880px) { /* Ajustado el punto de quiebre */
   body {
     height: auto;
     min-height: 100vh;
@@ -175,48 +159,66 @@ button:hover {
   .container {
     padding: 15px;
     width: 95%;
+    max-width: 500px; /* Volver al ancho máximo de móvil */
+  }
+  
+  .main-content {
+    flex-direction: column; /* Apilar en lugar de lado a lado */
+    align-items: center;
+    gap: 20px;
+  }
+  
+  #leaderboard {
+    width: 100%;
+    max-height: 120px; /* Reducir altura del leaderboard en móvil */
   }
 
   h1 {
-    font-size: 1.5rem;
+    font-size: 1.8rem; /* Título más pequeño en móvil */
     margin-top: 0;
     margin-bottom: 10px;
-  }
-  
-  label {
-    margin-bottom: 0;
   }
 
   input, button {
     margin: 8px 5px;
+    padding: 8px 12px;
   }
   
   #scoreDisplay {
     margin: 10px 0;
-  }
-
-  #gameCanvas {
-    margin-top: 10px;
-  }
-
-  #leaderboard {
-    margin-top: 15px;
-    padding: 8px 15px;
-    max-height: 120px;
-  }
-
-  #leaderboard h2 {
-    font-size: 1.1rem;
-    margin-bottom: 5px;
+    font-size: 20px;
   }
   
-  #gameScreen { /* Para mostrar los controles */
-      display: none;
-      flex-direction: column;
-      align-items: center;
-  }
-  
+  /* Mostrar y estilizar controles móviles */
   .mobile-controls-container {
     display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 15px;
+  }
+  
+  .mobile-controls-container .middle-row {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .mobile-controls-container button {
+    width: 60px;
+    height: 60px;
+    font-size: 24px;
+    margin: 5px;
+    background-color: #333;
+    color: #00ff88;
+    border: 1px solid #00ff88;
+  }
+
+  .mobile-controls-container button:active {
+    background-color: #00ff88;
+    color: #1f1f1f;
+  }
+
+  .mobile-controls-container .middle-row button {
+    width: 80px;
   }
 }
