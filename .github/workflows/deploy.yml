@@ -2,13 +2,11 @@
 
 name: Deploy Game to GitHub Pages
 
-# Se ejecuta cada vez que haces un push a la rama 'main'
 on:
   push:
     branches:
       - main
 
-# Permisos para que la acción pueda escribir en la rama de despliegue
 permissions:
   contents: write
 
@@ -20,12 +18,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Reemplaza los placeholders en game.js con los secretos
-      - name: Replace EmailJS Credentials
+      # 2. Reemplaza los placeholders y MUESTRA EL RESULTADO
+      - name: Replace EmailJS Credentials and Debug
         run: |
+          echo "--- Contenido de game.js ANTES de reemplazar ---"
+          cat game.js
+          echo "------------------------------------------------"
+
           sed -i 's/EMAILJS_USER_ID_PLACEHOLDER/${{ secrets.EMAILJS_USER_ID }}/g' game.js
           sed -i 's/EMAILJS_SERVICE_ID_PLACEHOLDER/${{ secrets.EMAILJS_SERVICE_ID }}/g' game.js
           sed -i 's/EMAILJS_TEMPLATE_ID_PLACEHOLDER/${{ secrets.EMAILJS_TEMPLATE_ID }}/g' game.js
+
+          echo "--- Contenido de game.js DESPUÉS de reemplazar ---"
+          cat game.js
+          echo "-------------------------------------------------"
 
       # 3. Despliega la carpeta completa a la rama 'gh-pages'
       - name: Deploy to gh-pages
@@ -33,4 +39,3 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: .
-          # La opción 'publish_dir: .' publica todo el contenido del repositorio
