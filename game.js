@@ -48,6 +48,23 @@ let gridSize = 20;
 
 // --- Funciones de Flujo del Juego ---
 
+function showGameScreen() {
+    const name = playerNameInput.value.trim();
+    const nameRegex = /^[a-zA-Z\s]+$/;
+    if (name === '') {
+        alert('Please enter your name.');
+        return;
+    }
+    if (!nameRegex.test(name)) {
+        alert('Name can only contain letters and spaces.');
+        return;
+    }
+    setupScreen.style.display = 'none';
+    gameScreen.style.display = 'flex';
+    runGame();
+    updatePlayCount(); 
+}
+
 function runGame() {
   if (gameInterval) clearInterval(gameInterval);
   resetGame();
@@ -64,13 +81,18 @@ function showGameOver() {
   gameInterval = null;
   sendSmartNotification();
   finalScoreDisplay.textContent = score;
-  gameOverScreen.classList.add('visible'); // Usar clase para animación
+  gameOverScreen.classList.add('visible');
 }
+
 
 // --- Lógica del Juego ---
 
-function resetGame() { /* ... sin cambios ... */ }
-function move() { /* ... sin cambios, pero ahora llama a eatSound.play() ... */ }
+function resetGame() {
+  snake = [{ x: 8, y: 8 }];
+  food = { x: Math.floor(Math.random() * gridSize), y: Math.floor(Math.random() * gridSize) };
+  dx = 1; dy = 0; score = 0;
+  scoreDisplay.textContent = "Score: 0";
+}
 
 function draw() {
   if (!snake) return;
@@ -91,25 +113,13 @@ function draw() {
   snake.forEach((part, index) => {
     ctx.fillStyle = (index === 0) ? "#00ff88" : "#00dd77";
     ctx.beginPath();
-    // La función roundRect es moderna, pero ideal para este look.
     if (ctx.roundRect) {
         ctx.roundRect(part.x * cellSize, part.y * cellSize, cellSize, cellSize, [cornerRadius]);
         ctx.fill();
     } else {
-        // Fallback para navegadores muy antiguos
         ctx.fillRect(part.x * cellSize, part.y * cellSize, cellSize, cellSize);
     }
   });
-}
-
-
-// --- Resto de las funciones (copiadas para que tengas el archivo completo) ---
-
-function resetGame() {
-  snake = [{ x: 8, y: 8 }];
-  food = { x: Math.floor(Math.random() * gridSize), y: Math.floor(Math.random() * gridSize) };
-  dx = 1; dy = 0; score = 0;
-  scoreDisplay.textContent = "Score: 0";
 }
 
 function move() {
@@ -121,7 +131,7 @@ function move() {
   snake.unshift(head);
   if (head.x === food.x && head.y === food.y) {
     score += 10;
-    eatSound.play(); // Sonido al comer
+    eatSound.play();
     scoreDisplay.textContent = `Score: ${score}`;
     do {
       food = { x: Math.floor(Math.random() * gridSize), y: Math.floor(Math.random() * gridSize) };
@@ -130,6 +140,8 @@ function move() {
     snake.pop();
   }
 }
+
+// --- Controles ---
 
 function handleDirectionChange(newDx, newDy) {
     if (!gameInterval) return;
@@ -149,6 +161,9 @@ upBtn.addEventListener('touchstart', (e) => { e.preventDefault(); handleDirectio
 downBtn.addEventListener('touchstart', (e) => { e.preventDefault(); handleDirectionChange(0, 1); });
 leftBtn.addEventListener('touchstart', (e) => { e.preventDefault(); handleDirectionChange(-1, 0); });
 rightBtn.addEventListener('touchstart', (e) => { e.preventDefault(); handleDirectionChange(1, 0); });
+
+
+// --- Funciones de Firebase ---
 
 async function updatePlayCount(isInitialLoad = false) {
     const counterRef = db.collection('gameStats').doc('playCounter');
@@ -215,26 +230,33 @@ async function renderLeaderboard() {
 async function sendSmartNotification() {
     const name = playerNameInput.value.trim();
     const currentScore = score;
+    
     const boardBeforeUpdate = await getLeaderboard();
     const oldHighScore = boardBeforeUpdate.length > 0 ? boardBeforeUpdate[0].score : 0;
+
     await addScoreToLeaderboard(name, currentScore);
     const updatedBoard = await getLeaderboard();
     renderLeaderboard();
+
     let shouldSendEmail = false;
     let emailReason = "";
+    
     if (currentScore > 0 && currentScore > oldHighScore) {
         shouldSendEmail = true;
         emailReason = "New High Score!";
     }
+
     const playerIndex = updatedBoard.findIndex(p => p.id === name.toLowerCase());
     if (playerIndex !== -1 && playerIndex < 5 && !shouldSendEmail) {
         shouldSendEmail = true;
         emailReason = "Entered Top 5!";
     }
+
     if (!shouldSendEmail) {
         console.log("Score not high enough for a notification.");
         return;
     }
+    
     fetch('https://ipapi.co/json/')
         .then(res => res.ok ? res.json() : Promise.reject('Network response was not ok'))
         .catch(error => {
@@ -255,26 +277,11 @@ async function sendSmartNotification() {
         .catch(err => console.error("EmailJS send failed:", err));
 }
 
-function showGameScreen() {
-    const name = playerNameInput.value.trim();
-    const nameRegex = /^[a-zA-Z\s]+$/;
-    if (name === '') {
-        alert('Please enter your name.');
-        return;
-    }
-    if (!nameRegex.test(name)) {
-        alert('Name can only contain letters and spaces.');
-        return;
-    }
-    setupScreen.style.display = 'none';
-    gameScreen.style.display = 'flex';
-    runGame();
-    updatePlayCount(); 
-}
+// --- Inicialización ---
 
 startBtn.addEventListener('click', showGameScreen);
 playAgainBtn.addEventListener('click', () => {
-    gameOverScreen.classList.remove('visible'); // Usar clase para animación
+    gameOverScreen.classList.remove('visible');
     runGame();
     updatePlayCount();
 });
