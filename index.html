@@ -2,31 +2,265 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Snake Game</title>
-  <link rel="stylesheet" href="style.css" />
+  <title>Snake Game with Start Button</title>
+  <style>
+    body {
+      margin: 0;
+      background: #111;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-family: monospace;
+      color: #0f0;
+    }
+    #gameContainer {
+      position: relative;
+      width: 500px;
+      height: 500px;
+      border: 3px solid #0f0;
+      background: #000;
+      margin-bottom: 20px;
+    }
+    canvas {
+      display: block;
+      background-color: #000;
+    }
+    button {
+      background: #0f0;
+      border: none;
+      padding: 10px 20px;
+      font-size: 18px;
+      cursor: pointer;
+      color: #000;
+      border-radius: 5px;
+    }
+    #score {
+      font-size: 22px;
+      margin-bottom: 10px;
+    }
+    #gameOverModal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #000d;
+      color: #0f0;
+      border: 2px solid #0f0;
+      padding: 20px;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      z-index: 10;
+      border-radius: 10px;
+    }
+    input, label {
+      font-size: 18px;
+      margin-top: 10px;
+      color: #0f0;
+    }
+    input {
+      background: #111;
+      border: 1px solid #0f0;
+      color: #0f0;
+      padding: 5px 10px;
+      border-radius: 4px;
+      width: 200px;
+      text-align: center;
+    }
+    #sendEmailBtn {
+      margin-top: 15px;
+      background: #060;
+      padding: 10px 20px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+    }
+  </style>
 </head>
 <body>
-  <canvas width="400" height="400" id="game"></canvas>
-  <div id="score">Score: 0</div>
 
-  <div id="modal" class="hidden">
-    <div id="modal-content">
-      <h2>Game Over!</h2>
-      <p>Your score: <span id="final-score"></span></p>
-      <label for="player-name">Enter your name:</label>
-      <input id="player-name" type="text" maxlength="15" placeholder="Your name" />
-      <button id="save-score">Save Score</button>
-      <button id="send-email">Send Score by Email</button>
-      <button id="close-modal">Close</button>
-    </div>
+  <div id="score">Score: 0</div>
+  <div id="gameContainer">
+    <canvas id="game" width="500" height="500"></canvas>
   </div>
 
-  <h3>High Scores</h3>
-  <table id="highscores">
-    <thead><tr><th>Name</th><th>Score</th></tr></thead>
-    <tbody></tbody>
-  </table>
+  <button id="startBtn">Start Game</button>
 
-  <script src="game.js"></script>
+  <div id="gameOverModal">
+    <h2>Game Over!</h2>
+    <label for="playerName">Enter your name:</label>
+    <input id="playerName" type="text" maxlength="20" placeholder="Your name" />
+    <button id="sendEmailBtn">Send Score by Email</button>
+    <button id="closeModalBtn" style="margin-top:10px;">Close</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const scoreDisplay = document.getElementById('score');
+    const startBtn = document.getElementById('startBtn');
+    const gameOverModal = document.getElementById('gameOverModal');
+    const playerNameInput = document.getElementById('playerName');
+    const sendEmailBtn = document.getElementById('sendEmailBtn');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+
+    const gridSize = 20;
+    const tileCount = canvas.width / gridSize;
+
+    let snake = [];
+    let food = {};
+    let velocityX = 0;
+    let velocityY = 0;
+    let score = 0;
+    let gameInterval = null;
+    let speed = 7; // Lower speed (ticks per second)
+    let gameRunning = false;
+    let playerIP = '';
+
+    // Fetch public IP on load
+    async function fetchIP() {
+      try {
+        const res = await fetch('https://api.ipify.org?format=json');
+        const data = await res.json();
+        playerIP = data.ip;
+      } catch (e) {
+        playerIP = 'Unknown';
+      }
+    }
+    fetchIP();
+
+    function resetGame() {
+      snake = [{x: 10, y: 10}];
+      velocityX = 0;
+      velocityY = 0;
+      placeFood();
+      score = 0;
+      scoreDisplay.textContent = 'Score: ' + score;
+    }
+
+    function placeFood() {
+      food.x = Math.floor(Math.random() * tileCount);
+      food.y = Math.floor(Math.random() * tileCount);
+      // Make sure food is not on snake
+      for (const segment of snake) {
+        if (segment.x === food.x && segment.y === food.y) {
+          placeFood();
+          break;
+        }
+      }
+    }
+
+    function gameLoop() {
+      if (!gameRunning) return;
+
+      // Move snake by velocity
+      const head = {...snake[0]};
+      head.x += velocityX;
+      head.y += velocityY;
+
+      // Check collisions with walls
+      if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
+        return gameOver();
+      }
+
+      // Check collisions with self
+      for (const segment of snake) {
+        if (segment.x === head.x && segment.y === head.y) {
+          return gameOver();
+        }
+      }
+
+      snake.unshift(head);
+
+      // Check food
+      if (head.x === food.x && head.y === food.y) {
+        score++;
+        scoreDisplay.textContent = 'Score: ' + score;
+        placeFood();
+      } else {
+        snake.pop();
+      }
+
+      drawGame();
+    }
+
+    function drawGame() {
+      // Clear screen
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw snake
+      ctx.fillStyle = '#0f0';
+      for (const segment of snake) {
+        ctx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize-2, gridSize-2);
+      }
+
+      // Draw food
+      ctx.fillStyle = '#f00';
+      ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize-2, gridSize-2);
+    }
+
+    function gameOver() {
+      gameRunning = false;
+      clearInterval(gameInterval);
+      gameOverModal.style.display = 'flex';
+    }
+
+    // Control snake with arrows
+    document.addEventListener('keydown', e => {
+      if (!gameRunning) return;
+
+      switch (e.key) {
+        case 'ArrowUp':
+          if (velocityY === 1) break; // Prevent reverse
+          velocityX = 0;
+          velocityY = -1;
+          break;
+        case 'ArrowDown':
+          if (velocityY === -1) break;
+          velocityX = 0;
+          velocityY = 1;
+          break;
+        case 'ArrowLeft':
+          if (velocityX === 1) break;
+          velocityX = -1;
+          velocityY = 0;
+          break;
+        case 'ArrowRight':
+          if (velocityX === -1) break;
+          velocityX = 1;
+          velocityY = 0;
+          break;
+      }
+    });
+
+    startBtn.addEventListener('click', () => {
+      resetGame();
+      gameRunning = true;
+      velocityX = 1; // start moving right
+      velocityY = 0;
+      startBtn.style.display = 'none';
+      gameOverModal.style.display = 'none';
+      playerNameInput.value = '';
+      gameInterval = setInterval(gameLoop, 1000 / speed);
+    });
+
+    closeModalBtn.addEventListener('click', () => {
+      gameOverModal.style.display = 'none';
+      startBtn.style.display = 'inline-block';
+    });
+
+    sendEmailBtn.addEventListener('click', () => {
+      const name = playerNameInput.value.trim() || 'Anonymous';
+      const subject = encodeURIComponent('Snake Game Score from ' + name);
+      const body = encodeURIComponent(
+        `Hi Francisco Villahermosa,%0D%0A%0D%0AI scored ${score} points on your Snake game!%0D%0APlayer name: ${name}%0D%0APlayer IP: ${playerIP}%0D%0A%0D%0AThanks,%0D%0A${name}`
+      );
+      window.location.href = `mailto:franciscovillahermosa@gmail.com?subject=${subject}&body=${body}`;
+    });
+  </script>
 </body>
 </html>
