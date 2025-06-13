@@ -1,9 +1,7 @@
-// --- CÓDIGO TEMPORAL SOLO PARA LA PRUEBA ---
-
-const EMAILJS_USER_ID = 'PMOEIYlzOvdOcA2l5';         // Tu Public Key
-const EMAILJS_SERVICE_ID = 'service_lk8e0nv';    // Tu Service ID real
-const EMAILJS_TEMPLATE_ID = 'template_xjhieh3'; // Tu Template ID real
-
+// ⚠️ PLACEHOLDERS - Serán reemplazados automáticamente por GitHub Actions
+const EMAILJS_USER_ID = 'EMAILJS_USER_ID_PLACEHOLDER';
+const EMAILJS_SERVICE_ID = 'EMAILJS_SERVICE_ID_PLACEHOLDER';
+const EMAILJS_TEMPLATE_ID = 'EMAILJS_TEMPLATE_ID_PLACEHOLDER';
 // --- FIN DEL CÓDIGO DE PRUEBA ---
 
 // Inicialización de EmailJS
