@@ -41,10 +41,13 @@
     </div>
 
     <div id="leaderboard">
-      <h2>🏆 Leaderboard</h2>
-      <ol id="leaderboardList"></ol>
+      <h2>🏆 Global Leaderboard</h2>
+      <ol id="leaderboardList"><li>Loading...</li></ol>
     </div>
   </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-firestore-compat.js"></script>
 
   <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
   <script type="module" src="game.js"></script>
