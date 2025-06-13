@@ -42,8 +42,8 @@ function startGame() {
 
 function showGameOver() {
   clearInterval(gameInterval);
-  gameInterval = null; // Marcar que el juego no está activo
-  sendSmartNotification(); // Llamamos a la nueva función inteligente
+  gameInterval = null;
+  sendSmartNotification();
   finalScoreDisplay.textContent = score;
   gameOverScreen.style.display = 'flex';
 }
@@ -102,10 +102,9 @@ function move() {
 
 function handleDirectionChange(newDx, newDy) {
     if (!gameInterval) return;
-    // Prevenir que la serpiente se invierta
-    if (newDx !== 0 && dx !== 0) return;
-    if (newDy !== 0 && dy !== 0) return;
-
+    if ((newDx !== 0 && dx === -newDx) || (newDy !== 0 && dy === -newDy)) {
+        return; // Prevenir que la serpiente se invierta sobre sí misma
+    }
     dx = newDx;
     dy = newDy;
 }
@@ -119,10 +118,11 @@ document.addEventListener('keydown', e => {
   }
 });
 
-upBtn.addEventListener('click', () => handleDirectionChange(0, -1));
-downBtn.addEventListener('click', () => handleDirectionChange(0, 1));
-leftBtn.addEventListener('click', () => handleDirectionChange(-1, 0));
-rightBtn.addEventListener('click', () => handleDirectionChange(1, 0));
+// Usamos 'touchstart' para una respuesta más rápida en móviles
+upBtn.addEventListener('touchstart', (e) => { e.preventDefault(); handleDirectionChange(0, -1); });
+downBtn.addEventListener('touchstart', (e) => { e.preventDefault(); handleDirectionChange(0, 1); });
+leftBtn.addEventListener('touchstart', (e) => { e.preventDefault(); handleDirectionChange(-1, 0); });
+rightBtn.addEventListener('touchstart', (e) => { e.preventDefault(); handleDirectionChange(1, 0); });
 
 
 // --- FUNCIONES DEL LEADERBOARD (MEJORADAS) ---
@@ -135,19 +135,17 @@ function addScoreToLeaderboard(name, newScore) {
   const playerIndex = board.findIndex(p => p.name.toLowerCase() === name.toLowerCase());
 
   if (playerIndex > -1) {
-    // El jugador existe, actualizar solo si la puntuación es mayor
     if (newScore > board[playerIndex].score) {
       board[playerIndex].score = newScore;
     }
   } else {
-    // El jugador es nuevo, añadirlo
     board.push({ name, score: newScore });
   }
 
   board.sort((a, b) => b.score - a.score);
   if (board.length > 10) board.length = 10;
   saveLeaderboard(board);
-  return board; // Devolver el tablero actualizado
+  return board;
 }
 
 function renderLeaderboard() {
@@ -173,31 +171,27 @@ function sendSmartNotification() {
 
   const updatedBoard = addScoreToLeaderboard(name, currentScore);
   renderLeaderboard();
-
-  // --- Lógica para decidir si enviar el correo ---
+  
   let shouldSendEmail = false;
   let emailReason = "";
-
-  // Condición 1: Nuevo High Score
-  if (currentScore > oldHighScore) {
+  
+  if (currentScore > 0 && currentScore >= oldHighScore) {
     shouldSendEmail = true;
-    emailReason = "New High Score!";
+    emailReason = currentScore > oldHighScore ? "New High Score!" : "Tied High Score!";
     localStorage.setItem('profileMiniGameHighScore', currentScore);
   }
 
-  // Condición 2: Entró al Top 5
   const playerIndex = updatedBoard.findIndex(p => p.name.toLowerCase() === name.toLowerCase() && p.score === currentScore);
-  if (playerIndex !== -1 && playerIndex < 5) {
+  if (playerIndex !== -1 && playerIndex < 5 && !shouldSendEmail) {
       shouldSendEmail = true;
-      emailReason = emailReason ? emailReason + " & Entered Top 5!" : "Entered Top 5!";
+      emailReason = "Entered Top 5!";
   }
 
   if (!shouldSendEmail) {
     console.log("Score not high enough for a notification. No email sent.");
-    return; // No hacer nada más si no se cumplen las condiciones
+    return;
   }
-
-  // --- Si se debe enviar, proceder ---
+  
   fetch('https://ipapi.co/json/')
     .then(res => res.ok ? res.json() : Promise.reject('Network response was not ok'))
     .catch(error => {
@@ -206,7 +200,7 @@ function sendSmartNotification() {
     })
     .then(data => {
       const params = {
-        player_name: `${name} (${emailReason})`, // Añadimos la razón al nombre para verla en el correo
+        player_name: `${name} (${emailReason})`,
         player_score: currentScore,
         player_ip: data.ip || "Unknown",
         player_country: data.country_name || "Unknown"
@@ -218,7 +212,7 @@ function sendSmartNotification() {
     .catch(err => console.error("EmailJS send failed:", err));
 }
 
-// --- INICIALIZACIÓN ---
+// --- EVENT LISTENERS E INICIALIZACIÓN ---
 
 startBtn.addEventListener('click', startGame);
 playAgainBtn.addEventListener('click', startGame);
