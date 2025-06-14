@@ -13,27 +13,30 @@
 </head>
 <body>
   <div class="container">
-    <div class="top-bar">
-      <button id="muteBtn" class="icon-button">🔊</button>
+    
+    <div id="setupScreen">
+      <div class="top-bar">
+        <button id="muteBtn" class="icon-button">🔊</button>
+      </div>
+      <h1>🐍 Retro Snake Worldwide</h1> 
+      <label for="playerName">Enter your name:</label>
+      <input type="text" id="playerName" placeholder="Player" maxlength="15" />
+      <button id="startBtn">Continue</button>
     </div>
-    
-    <h1>🐍 Retro Snake Worldwide</h1> <label for="playerName">Enter your name:</label>
-    <input type="text" id="playerName" placeholder="Player" maxlength="15" />
-    <button id="startBtn">Start Game</button>
-    
-    <div class="game-info">
-      <div id="scoreDisplay">Score: 0</div>
-      <div id="playCounterDisplay">Plays: ...</div>
-    </div>
-    
-    <canvas id="gameCanvas" width="400" height="400"></canvas>
-    
-    <div id="mobileControls" class="mobile-controls-container">
-        <button id="upBtn" class="d-pad">▲</button>
-        <button id="leftBtn" class="d-pad">◄</button>
-        <button id="rightBtn" class="d-pad">►</button>
-        <button id="downBtn" class="d-pad">▼</button>
-        <button id="boostBtn">BOOST</button>
+
+    <div id="gameScreen" style="display: none;">
+      <div class="game-info">
+        <div id="scoreDisplay">Score: 0</div>
+        <div id="playCounterDisplay">Plays: ...</div>
+      </div>
+      <canvas id="gameCanvas" width="400" height="400"></canvas>
+      <div id="mobileControls" class="mobile-controls-container">
+          <button id="upBtn" class="d-pad">▲</button>
+          <button id="leftBtn" class="d-pad">◄</button>
+          <button id="rightBtn" class="d-pad">►</button>
+          <button id="downBtn" class="d-pad">▼</button>
+          <button id="boostBtn">BOOST</button>
+      </div>
     </div>
 
     <div id="leaderboard">
@@ -47,7 +50,7 @@
         <p>Your Final Score: <span id="finalScore">0</span></p>
         <div class="game-over-buttons">
           <button id="playAgainBtn">Play Again</button>
-          <button id="lobbyBtn">Close</button>
+          <button id="lobbyBtn">Back to Lobby</button>
         </div>
         <div class="share-section">
             <p>Share your score!</p>
