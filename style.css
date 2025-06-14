@@ -14,10 +14,10 @@ body {
 .container {
   position: relative;
   background-color: #1f1f1f;
-  padding: 20px;
+  padding: 30px;
   border-radius: 12px;
   box-shadow: 0 0 15px #00ff88aa;
-  max-width: 500px;
+  max-width: 850px;
   width: 90%;
   text-align: center;
   overflow: hidden;
@@ -27,15 +27,28 @@ body {
 h1 {
   font-family: 'Press Start 2P', cursive;
   color: #00ff88;
-  font-size: 1.8rem;
-  text-shadow: 0 0 5px #00ff88;
-  margin-top: 30px;
+  font-size: 2.2rem;
+  text-shadow: 0 0 5px #00ff88, 0 0 10px #00ff88;
 }
 
-#gameScreen {
-  display: none; /* Oculto por defecto, se activa con JS */
-  flex-direction: column;
-  align-items: center;
+.setup-controls {
+    margin: 15px 0;
+}
+
+/* Layout Principal */
+.main-content {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 30px;
+  margin-top: 20px;
+}
+
+.game-column {
+    flex-basis: 500px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 #gameCanvas {
@@ -46,7 +59,6 @@ h1 {
   aspect-ratio: 1 / 1;
   display: block;
   border-radius: 8px;
-  margin: 15px auto 0 auto;
 }
 
 .game-info {
@@ -54,14 +66,15 @@ h1 {
     justify-content: space-around;
     align-items: center;
     width: 100%;
-    max-width: 400px;
-    margin: 15px auto 0 auto;
+    max-width: 450px;
+    margin: 0 auto 15px auto;
 }
 
 #scoreDisplay, #playCounterDisplay {
   font-family: 'Press Start 2P', cursive;
-  font-size: 1rem;
+  font-size: 1.2rem;
   color: #00ff88;
+  margin: 0;
 }
 
 input, button {
@@ -96,25 +109,31 @@ button:active {
   transform: scale(0.95);
 }
 
+button:disabled {
+    background-color: #555;
+    color: #888;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
 /* Leaderboard styles */
 #leaderboard {
+  flex-basis: 300px;
   text-align: left;
   color: #00ff88;
   background-color: #0d0d0d;
   padding: 15px 25px;
   border-radius: 8px;
-  max-height: 200px;
+  height: 500px;
+  max-height: 500px;
   overflow-y: auto;
   width: 100%;
-  box-sizing: border-box;
-  margin-top: 20px;
 }
 
 #leaderboard h2 {
   font-family: 'Press Start 2P', cursive;
   font-size: 1.2rem;
   margin-top: 0;
-  margin-bottom: 15px;
   text-align: center;
 }
 
@@ -221,7 +240,7 @@ button:active {
 
 /* Controles Móviles */
 .mobile-controls-container {
-  display: none; /* Se activa con media query */
+  display: none;
   align-items: center;
   justify-content: center;
   margin-top: 20px;
@@ -306,8 +325,47 @@ button:active {
     animation: flash-red 0.1s 4 alternate;
 }
 
-@media (max-width: 768px) {
-    .mobile-controls-container {
-        display: flex;
-    }
+/* --- ESTILOS PARA TELÉFONOS Y PANTALLAS PEQUEÑAS --- */
+@media (max-width: 880px) {
+  body {
+    height: auto;
+    min-height: 100vh;
+    padding: 10px 0;
+  }
+  .container {
+    padding: 15px;
+    width: 95%;
+    max-width: 500px;
+  }
+  .main-content {
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+  #leaderboard {
+    width: 100%;
+    height: auto;
+    max-height: 150px;
+  }
+  #leaderboardList li {
+    font-size: 0.85rem;
+  }
+  h1 {
+    font-size: 1.5rem;
+    margin-top: 20px;
+    margin-bottom: 10px;
+  }
+  input, button {
+    margin: 8px 5px;
+    padding: 8px 12px;
+  }
+  .game-info {
+    margin: 10px auto;
+  }
+  #scoreDisplay, #playCounterDisplay {
+    font-size: 1rem;
+  }
+  .mobile-controls-container {
+    display: flex;
+  }
 }
