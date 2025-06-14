@@ -1,4 +1,4 @@
-// --- Configuración de Firebase ---
+// --- Configuración de Firebase y EmailJS ---
 const firebaseConfig = {
   apiKey: "AIzaSyBpAWJ6ZVO5oLfyLpC8cZNdiTk6lt1-HFo",
   authDomain: "profile-minigame.firebaseapp.com",
@@ -11,7 +11,6 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// --- Configuración de EmailJS ---
 const EMAILJS_USER_ID = 'PMOEIYlzOvdOcA2l5';
 const EMAILJS_SERVICE_ID = 'service_lk8e0nv';
 const EMAILJS_TEMPLATE_ID = 'template_xjhieh3';
@@ -20,8 +19,9 @@ emailjs.init(EMAILJS_USER_ID);
 // --- Efectos de Sonido ---
 const eatSound = new Audio('audio/eat.wav');
 const gameOverSound = new Audio('audio/gameover.wav');
-eatSound.volume = 0.5;
-gameOverSound.volume = 0.5;
+const backgroundMusic = new Audio('audio/music.mp3');
+backgroundMusic.loop = true;
+backgroundMusic.volume = 0.3;
 
 // --- Elementos del DOM ---
 const setupScreen = document.getElementById('setupScreen');
@@ -36,22 +36,41 @@ const leaderboardList = document.getElementById('leaderboardList');
 const gameOverScreen = document.getElementById('gameOverScreen');
 const finalScoreDisplay = document.getElementById('finalScore');
 const playAgainBtn = document.getElementById('playAgainBtn');
+const lobbyBtn = document.getElementById('lobbyBtn');
+const muteBtn = document.getElementById('muteBtn');
 const upBtn = document.getElementById('upBtn');
 const downBtn = document.getElementById('downBtn');
 const leftBtn = document.getElementById('leftBtn');
 const rightBtn = document.getElementById('rightBtn');
+const boostBtn = document.getElementById('boostBtn');
 
 // --- Variables del Juego ---
 let snake, food, dx, dy, score, gameInterval;
 let gridSize = 20;
+const NORMAL_SPEED = 150;
+const BOOST_SPEED = 60;
+let currentSpeed = NORMAL_SPEED;
+let isMuted = false;
+
 
 // --- Funciones de Flujo del Juego ---
+
+function showSetupScreen() {
+    gameOverScreen.classList.remove('visible');
+    gameScreen.style.display = 'none';
+    setupScreen.style.display = 'block';
+    renderLeaderboard();
+}
 
 function showGameScreen() {
     const name = playerNameInput.value.trim();
     const nameRegex = /^[a-zA-Z\s]+$/;
     if (name === '') { alert('Please enter your name.'); return; }
     if (!nameRegex.test(name)) { alert('Name can only contain letters and spaces.'); return; }
+    
+    if (!isMuted && backgroundMusic.paused) {
+        backgroundMusic.play().catch(e => console.error("Audio autoplay was blocked.", e));
+    }
     
     setupScreen.style.display = 'none';
     gameScreen.style.display = 'flex';
@@ -60,19 +79,25 @@ function showGameScreen() {
 
 function runGame() {
   if (gameInterval) clearInterval(gameInterval);
+  currentSpeed = NORMAL_SPEED;
   updatePlayCount();
   resetGame();
   draw();
-  gameInterval = setInterval(() => { move(); draw(); }, 150);
+  gameInterval = setInterval(() => { move(); draw(); }, currentSpeed);
 }
 
-function showGameOver() {
-  gameOverSound.play();
-  clearInterval(gameInterval);
-  gameInterval = null;
-  processEndOfGame();
-  finalScoreDisplay.textContent = score;
-  gameOverScreen.classList.add('visible');
+function initiateGameOverSequence() {
+    if (!gameInterval) return; // Prevenir múltiples llamadas
+    gameOverSound.play();
+    clearInterval(gameInterval);
+    gameInterval = null;
+    canvas.classList.add('snake-hit');
+    setTimeout(() => {
+        canvas.classList.remove('snake-hit');
+        processEndOfGame();
+        finalScoreDisplay.textContent = score;
+        gameOverScreen.classList.add('visible');
+    }, 600);
 }
 
 // --- Lógica del Juego ---
@@ -89,6 +114,7 @@ function draw() {
   ctx.fillStyle = "#2c2c2c";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   const cellSize = canvas.width / gridSize;
+  const cornerRadius = 4;
   ctx.fillStyle = "#ff4444";
   ctx.beginPath();
   ctx.arc(food.x * cellSize + cellSize / 2, food.y * cellSize + cellSize / 2, cellSize / 2.2, 0, 2 * Math.PI);
@@ -97,7 +123,7 @@ function draw() {
     ctx.fillStyle = (index === 0) ? "#00ff88" : "#00dd77";
     ctx.beginPath();
     if (ctx.roundRect) {
-        ctx.roundRect(part.x * cellSize, part.y * cellSize, cellSize, cellSize, [4]);
+        ctx.roundRect(part.x * cellSize, part.y * cellSize, cellSize, cellSize, [cornerRadius]);
         ctx.fill();
     } else {
         ctx.fillRect(part.x * cellSize, part.y * cellSize, cellSize, cellSize);
@@ -108,7 +134,7 @@ function draw() {
 function move() {
   const head = { x: snake[0].x + dx, y: snake[0].y + dy };
   if (head.x < 0 || head.x >= gridSize || head.y < 0 || head.y >= gridSize || snake.slice(1).some(p => p.x === head.x && p.y === head.y)) {
-    showGameOver();
+    initiateGameOverSequence();
     return;
   }
   snake.unshift(head);
@@ -132,6 +158,14 @@ function handleDirectionChange(newDx, newDy) {
     dx = newDx;
     dy = newDy;
 }
+
+function setSpeed(speed) {
+    if (!gameInterval || currentSpeed === speed) return;
+    currentSpeed = speed;
+    clearInterval(gameInterval);
+    gameInterval = setInterval(() => { move(); draw(); }, currentSpeed);
+}
+
 document.addEventListener('keydown', e => {
   switch (e.key) {
     case 'ArrowUp': handleDirectionChange(0, -1); break;
@@ -140,10 +174,17 @@ document.addEventListener('keydown', e => {
     case 'ArrowRight': handleDirectionChange(1, 0); break;
   }
 });
+
 upBtn.addEventListener('touchstart', (e) => { e.preventDefault(); handleDirectionChange(0, -1); });
 downBtn.addEventListener('touchstart', (e) => { e.preventDefault(); handleDirectionChange(0, 1); });
 leftBtn.addEventListener('touchstart', (e) => { e.preventDefault(); handleDirectionChange(-1, 0); });
 rightBtn.addEventListener('touchstart', (e) => { e.preventDefault(); handleDirectionChange(1, 0); });
+
+boostBtn.addEventListener('mousedown', () => setSpeed(BOOST_SPEED));
+boostBtn.addEventListener('mouseup', () => setSpeed(NORMAL_SPEED));
+boostBtn.addEventListener('mouseleave', () => setSpeed(NORMAL_SPEED));
+boostBtn.addEventListener('touchstart', (e) => { e.preventDefault(); setSpeed(BOOST_SPEED); });
+boostBtn.addEventListener('touchend', () => setSpeed(NORMAL_SPEED));
 
 
 // --- Lógica Central de Fin de Partida ---
@@ -161,16 +202,13 @@ async function processEndOfGame() {
     }
     const country = locationData.country_name;
     const countryCode = locationData.country_code;
-
     const boardBeforeUpdate = await getLeaderboard();
     const seenCountriesDoc = await db.collection('gameStats').doc('seenCountries').get();
     const seenCountries = seenCountriesDoc.exists ? seenCountriesDoc.data().list : [];
-
     await addScoreToLeaderboard(name, currentScore, country, countryCode);
     const updatedBoard = await getLeaderboard();
     renderLeaderboard(updatedBoard);
-
-    sendSmartNotification(name, country, boardBeforeUpdate, updatedBoard, seenCountries, locationData);
+    sendSmartNotification(name, currentScore, country, boardBeforeUpdate, updatedBoard, seenCountries, locationData);
 }
 
 // --- Funciones de Firebase ---
@@ -227,8 +265,6 @@ function renderLeaderboard(board) {
     }
     board.forEach(entry => {
         const li = document.createElement('li');
-        
-        // Crear la bandera
         if (entry.countryCode && entry.countryCode !== 'N/A' && entry.countryCode.length === 2) {
             const flagImg = document.createElement('img');
             flagImg.src = `https://flagcdn.com/w20/${entry.countryCode.toLowerCase()}.png`;
@@ -239,17 +275,20 @@ function renderLeaderboard(board) {
             const fallbackEmoji = document.createTextNode('🌐 ');
             li.appendChild(fallbackEmoji);
         }
-        
-        // Crear el texto
         const textNode = document.createTextNode(` ${entry.name} - ${entry.score}`);
         li.appendChild(textNode);
-        
         leaderboardList.appendChild(li);
     });
 }
 
 // --- ENVÍO DE CORREO ---
 async function sendSmartNotification(name, country, boardBefore, boardAfter, seenCountries, locationData) {
+    const currentScore = score;
+    if (currentScore === 0) {
+        console.log("Score is 0, no notification sent.");
+        return;
+    }
+
     let shouldSendEmail = false;
     let emailReason = "";
     if (country && country !== 'N/A' && !seenCountries.includes(country)) {
@@ -277,7 +316,7 @@ async function sendSmartNotification(name, country, boardBefore, boardAfter, see
     }
     const params = {
         player_name: `${name} (${emailReason})`,
-        player_score: score,
+        player_score: currentScore,
         player_ip: locationData.ip || "Unknown",
         player_country: country
     };
@@ -287,11 +326,23 @@ async function sendSmartNotification(name, country, boardBefore, boardAfter, see
         .catch(err => console.error("EmailJS send failed:", err));
 }
 
-// --- Inicialización ---
+
+// --- Lógica de Audio y Carga Inicial ---
+
+function toggleMute() {
+    isMuted = !isMuted;
+    backgroundMusic.muted = isMuted;
+    muteBtn.textContent = isMuted ? '🔇' : '🔊';
+    localStorage.setItem('gameMuted', isMuted.toString());
+}
 
 async function initialLoad() {
-    // La función renderLeaderboard ahora se llama dentro de processEndOfGame, 
-    // pero la necesitamos al inicio también.
+    const savedMuteState = localStorage.getItem('gameMuted');
+    if (savedMuteState === 'true') {
+        isMuted = true;
+        backgroundMusic.muted = true;
+        muteBtn.textContent = '🔇';
+    }
     const board = await getLeaderboard();
     renderLeaderboard(board);
     updatePlayCount(true);
@@ -302,5 +353,7 @@ playAgainBtn.addEventListener('click', () => {
     gameOverScreen.classList.remove('visible');
     runGame();
 });
+lobbyBtn.addEventListener('click', showSetupScreen);
+muteBtn.addEventListener('click', toggleMute);
 
 initialLoad();
