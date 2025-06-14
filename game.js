@@ -151,7 +151,6 @@ rightBtn.addEventListener('touchstart', (e) => { e.preventDefault(); handleDirec
 async function processEndOfGame() {
     const name = playerNameInput.value.trim();
     const currentScore = score;
-
     let locationData;
     try {
         const response = await fetch('https://ipapi.co/json/');
@@ -220,17 +219,6 @@ async function addScoreToLeaderboard(name, newScore, country, countryCode) {
     }
 }
 
-function getFlagEmoji(countryCode) {
-    if (!countryCode || countryCode === 'N/A' || countryCode.length !== 2) {
-        return '🌐'; // Globo terráqueo como fallback
-    }
-    const codePoints = countryCode
-        .toUpperCase()
-        .split('')
-        .map(char => 127397 + char.charCodeAt(0));
-    return String.fromCodePoint(...codePoints);
-}
-
 function renderLeaderboard(board) {
     leaderboardList.innerHTML = '';
     if (!board || board.length === 0) {
@@ -239,8 +227,23 @@ function renderLeaderboard(board) {
     }
     board.forEach(entry => {
         const li = document.createElement('li');
-        const flag = getFlagEmoji(entry.countryCode);
-        li.textContent = `${flag} ${entry.name} - ${entry.score}`;
+        
+        // Crear la bandera
+        if (entry.countryCode && entry.countryCode !== 'N/A' && entry.countryCode.length === 2) {
+            const flagImg = document.createElement('img');
+            flagImg.src = `https://flagcdn.com/w20/${entry.countryCode.toLowerCase()}.png`;
+            flagImg.alt = entry.country;
+            flagImg.title = entry.country;
+            li.appendChild(flagImg);
+        } else {
+            const fallbackEmoji = document.createTextNode('🌐 ');
+            li.appendChild(fallbackEmoji);
+        }
+        
+        // Crear el texto
+        const textNode = document.createTextNode(` ${entry.name} - ${entry.score}`);
+        li.appendChild(textNode);
+        
         leaderboardList.appendChild(li);
     });
 }
@@ -249,38 +252,29 @@ function renderLeaderboard(board) {
 async function sendSmartNotification(name, country, boardBefore, boardAfter, seenCountries, locationData) {
     let shouldSendEmail = false;
     let emailReason = "";
-
-    // Condición 1: El país es nuevo y válido
     if (country && country !== 'N/A' && !seenCountries.includes(country)) {
         shouldSendEmail = true;
         emailReason = `New Country: ${country}!`;
-        // Añadir el nuevo país a la base de datos para que no se repita la notificación
         try {
             const seenCountriesRef = db.collection('gameStats').doc('seenCountries');
             await seenCountriesRef.update({ list: firebase.firestore.FieldValue.arrayUnion(country) });
         } catch (error) {
-            if (error.code === 'not-found') { // Si el documento no existe, lo crea
+            if (error.code === 'not-found') {
                 await db.collection('gameStats').doc('seenCountries').set({ list: [country] });
             }
         }
     }
-
-    // Condición 2: El jugador ENTRÓ al Top 5
     const oldIndex = boardBefore.findIndex(p => p.id === name.toLowerCase());
     const newIndex = boardAfter.findIndex(p => p.id === name.toLowerCase());
     const enteredTop5 = newIndex !== -1 && newIndex < 5 && (oldIndex === -1 || oldIndex >= 5);
-
-    if (enteredTop5 && !shouldSendEmail) { // Solo si no se ha activado ya por "nuevo país"
+    if (enteredTop5 && !shouldSendEmail) {
         shouldSendEmail = true;
         emailReason = `Entered Top 5 at #${newIndex + 1}!`;
     }
-
     if (!shouldSendEmail) {
         console.log("Conditions for notification not met.");
         return;
     }
-
-    // Si se cumple alguna condición, enviar correo
     const params = {
         player_name: `${name} (${emailReason})`,
         player_score: score,
@@ -293,9 +287,11 @@ async function sendSmartNotification(name, country, boardBefore, boardAfter, see
         .catch(err => console.error("EmailJS send failed:", err));
 }
 
-// --- INICIALIZACIÓN ---
+// --- Inicialización ---
 
 async function initialLoad() {
+    // La función renderLeaderboard ahora se llama dentro de processEndOfGame, 
+    // pero la necesitamos al inicio también.
     const board = await getLeaderboard();
     renderLeaderboard(board);
     updatePlayCount(true);
