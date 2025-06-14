@@ -6,7 +6,9 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 100vh;
+  min-height: 100vh;
+  padding: 20px 0;
+  box-sizing: border-box;
   -webkit-tap-highlight-color: transparent; 
   touch-action: manipulation;
 }
@@ -17,7 +19,7 @@ body {
   padding: 30px;
   border-radius: 12px;
   box-shadow: 0 0 15px #00ff88aa;
-  max-width: 850px;
+  max-width: 500px;
   width: 90%;
   text-align: center;
   overflow: hidden;
@@ -27,28 +29,16 @@ body {
 h1 {
   font-family: 'Press Start 2P', cursive;
   color: #00ff88;
-  font-size: 2.2rem;
-  text-shadow: 0 0 5px #00ff88, 0 0 10px #00ff88;
+  font-size: 1.8rem;
+  text-shadow: 0 0 5px #00ff88;
+  margin-top: 30px;
+  margin-bottom: 20px;
 }
 
-.setup-controls {
-    margin: 15px 0;
-}
-
-/* Layout Principal */
-.main-content {
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  gap: 30px;
-  margin-top: 20px;
-}
-
-.game-column {
-    flex-basis: 500px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+#gameScreen {
+  display: none; /* Se controla con JS */
+  flex-direction: column;
+  align-items: center;
 }
 
 #gameCanvas {
@@ -59,6 +49,7 @@ h1 {
   aspect-ratio: 1 / 1;
   display: block;
   border-radius: 8px;
+  margin: 15px auto 0 auto;
 }
 
 .game-info {
@@ -66,34 +57,23 @@ h1 {
     justify-content: space-around;
     align-items: center;
     width: 100%;
-    max-width: 450px;
-    margin: 0 auto 15px auto;
+    max-width: 400px;
+    margin: 15px auto 0 auto;
 }
 
 #scoreDisplay, #playCounterDisplay {
   font-family: 'Press Start 2P', cursive;
-  font-size: 1.2rem;
+  font-size: 1rem;
   color: #00ff88;
-  margin: 0;
 }
 
-input, button {
+button {
   padding: 10px 16px;
   margin: 10px 5px;
   border: none;
   border-radius: 6px;
   font-size: 16px;
   font-family: 'Poppins', sans-serif;
-}
-
-input {
-  width: 60%;
-  background-color: #333;
-  color: white;
-  border: 1px solid #555;
-}
-
-button {
   background-color: #00ff88;
   color: #000;
   cursor: pointer;
@@ -109,52 +89,138 @@ button:active {
   transform: scale(0.95);
 }
 
-button:disabled {
+/* --- Estilos de Autenticación y Perfil --- */
+#auth-container {
+    padding: 15px 0;
+    min-height: 120px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.google-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background-color: #4285F4;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+}
+.google-btn:hover {
+    background-color: #357ae8;
+}
+.google-btn img {
+    width: 20px;
+    height: 20px;
+    background-color: white;
+    border-radius: 2px;
+    padding: 2px;
+}
+
+#userProfile {
+    display: none; /* Controlado por JS */
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+}
+
+.profile-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 18px;
+}
+
+#userAvatar {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    border: 2px solid #00ff88;
+}
+
+#logoutBtn {
     background-color: #555;
-    color: #888;
-    cursor: not-allowed;
-    opacity: 0.6;
+    color: #eee;
+    font-size: 12px;
+    padding: 5px 10px;
+    margin: 0;
+}
+#logoutBtn:hover {
+    background-color: #ff4444;
 }
 
 /* Leaderboard styles */
 #leaderboard {
-  flex-basis: 300px;
   text-align: left;
   color: #00ff88;
   background-color: #0d0d0d;
   padding: 15px 25px;
   border-radius: 8px;
-  height: 500px;
-  max-height: 500px;
+  max-height: 250px;
   overflow-y: auto;
   width: 100%;
+  box-sizing: border-box;
+  margin-top: 20px;
 }
 
 #leaderboard h2 {
   font-family: 'Press Start 2P', cursive;
   font-size: 1.2rem;
   margin-top: 0;
+  margin-bottom: 15px;
   text-align: center;
 }
 
 #leaderboardList {
-  padding-left: 20px;
+  padding-left: 0;
+  list-style: none;
   margin: 0;
 }
 
 #leaderboardList li {
     font-size: 0.9rem;
-    margin-bottom: 5px;
+    margin-bottom: 8px;
     display: flex;
     align-items: center;
+    gap: 8px;
 }
 
-#leaderboardList li img {
+#leaderboardList li img.leaderboard-avatar {
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  vertical-align: middle;
+}
+
+#leaderboardList li img.leaderboard-flag {
   width: 20px;
   height: auto;
-  margin-right: 8px;
   vertical-align: middle;
   border-radius: 2px;
+}
+
+/* Botón de Donación */
+.donation-container {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #333;
+}
+
+.donation-button {
+    display: inline-block;
+    padding: 10px 20px;
+    background-color: #FF5E5B;
+    color: white;
+    text-decoration: none;
+    font-weight: bold;
+    border-radius: 8px;
+    transition: transform 0.2s, background-color 0.2s;
+}
+.donation-button:hover {
+    background-color: #e65654;
+    transform: scale(1.05);
 }
 
 /* Overlay de Game Over */
@@ -238,6 +304,7 @@ button:disabled {
 .share-button.twitter { background-color: #1DA1F2; }
 .share-button.whatsapp { background-color: #25D366; }
 
+
 /* Controles Móviles */
 .mobile-controls-container {
   display: none;
@@ -294,6 +361,7 @@ button:disabled {
   color: #1f1f1f;
 }
 
+
 /* Estilos Misceláneos */
 .top-bar {
     position: absolute;
@@ -325,46 +393,8 @@ button:disabled {
     animation: flash-red 0.1s 4 alternate;
 }
 
-/* --- ESTILOS PARA TELÉFONOS Y PANTALLAS PEQUEÑAS --- */
-@media (max-width: 880px) {
-  body {
-    height: auto;
-    min-height: 100vh;
-    padding: 10px 0;
-  }
-  .container {
-    padding: 15px;
-    width: 95%;
-    max-width: 500px;
-  }
-  .main-content {
-    flex-direction: column;
-    align-items: center;
-    gap: 20px;
-  }
-  #leaderboard {
-    width: 100%;
-    height: auto;
-    max-height: 150px;
-  }
-  #leaderboardList li {
-    font-size: 0.85rem;
-  }
-  h1 {
-    font-size: 1.5rem;
-    margin-top: 20px;
-    margin-bottom: 10px;
-  }
-  input, button {
-    margin: 8px 5px;
-    padding: 8px 12px;
-  }
-  .game-info {
-    margin: 10px auto;
-  }
-  #scoreDisplay, #playCounterDisplay {
-    font-size: 1rem;
-  }
+/* Media Query para Móviles */
+@media (max-width: 768px) {
   .mobile-controls-container {
     display: flex;
   }

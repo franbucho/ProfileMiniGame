@@ -10,6 +10,7 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+const auth = firebase.auth();
 
 const EMAILJS_USER_ID = 'PMOEIYlzOvdOcA2l5';
 const EMAILJS_SERVICE_ID = 'service_lk8e0nv';
@@ -24,18 +25,30 @@ backgroundMusic.loop = true;
 backgroundMusic.volume = 0.3;
 
 // --- Elementos del DOM ---
-const playerNameInput = document.getElementById('playerName');
+const loginScreen = document.getElementById('loginScreen');
+const userProfile = document.getElementById('userProfile');
+const loginBtn = document.getElementById('loginBtn');
+const logoutBtn = document.getElementById('logoutBtn');
+const userAvatar = document.getElementById('userAvatar');
+const userName = document.getElementById('userName');
+
+const gameScreen = document.getElementById('gameScreen');
+const setupScreen = document.getElementById('setupScreen');
 const startBtn = document.getElementById('startBtn');
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const scoreDisplay = document.getElementById('scoreDisplay');
 const playCounterDisplay = document.getElementById('playCounterDisplay');
 const leaderboardList = document.getElementById('leaderboardList');
+const leaderboardContainer = document.getElementById('leaderboard');
+const donationContainer = document.querySelector('.donation-container');
+
 const gameOverScreen = document.getElementById('gameOverScreen');
 const finalScoreDisplay = document.getElementById('finalScore');
 const playAgainBtn = document.getElementById('playAgainBtn');
 const lobbyBtn = document.getElementById('lobbyBtn');
 const muteBtn = document.getElementById('muteBtn');
+
 const upBtn = document.getElementById('upBtn');
 const downBtn = document.getElementById('downBtn');
 const leftBtn = document.getElementById('leftBtn');
@@ -52,21 +65,67 @@ const BOOST_SPEED = 50;
 let currentSpeed = NORMAL_SPEED;
 let isMuted = false;
 
+
+// --- Lógica de Autenticación ---
+
+auth.onAuthStateChanged(user => {
+    if (user) {
+        // Usuario está logueado
+        loginScreen.style.display = 'none';
+        userProfile.style.display = 'flex';
+        userName.textContent = user.displayName;
+        userAvatar.src = user.photoURL;
+        startBtn.style.display = 'inline-block';
+        setupScreen.style.display = 'block'; // Mostrar el setup si está logueado
+    } else {
+        // Usuario cerró sesión o no está logueado
+        userProfile.style.display = 'none';
+        loginScreen.style.display = 'block';
+        startBtn.style.display = 'none';
+        gameScreen.style.display = 'none'; // Ocultar el juego si cierra sesión
+        setupScreen.style.display = 'block'; // Mostrar el setup
+    }
+});
+
+function signInWithGoogle() {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider).catch(error => {
+        console.error("Error during sign-in:", error);
+    });
+}
+
+function signOut() {
+    auth.signOut();
+}
+
+
 // --- Funciones de Flujo del Juego ---
 
-function startGame() {
-    const name = playerNameInput.value.trim();
-    const nameRegex = /^[a-zA-Z\s]+$/;
-    if (name === '') { alert('Please enter your name.'); return; }
-    if (!nameRegex.test(name)) { alert('Name can only contain letters and spaces.'); return; }
+function showLobby() {
+    gameOverScreen.classList.remove('visible');
+    gameScreen.style.display = 'none';
+    setupScreen.style.display = 'block';
+    userProfile.style.display = 'flex';
+    leaderboardContainer.style.display = 'block';
+    donationContainer.style.display = 'block';
+    renderLeaderboard();
+}
 
-    if (!isMuted && backgroundMusic.paused) {
-        backgroundMusic.play().catch(e => console.error("Audio autoplay blocked.", e));
+function startGame() {
+    if (!auth.currentUser) {
+        alert("You must be signed in to play.");
+        return;
     }
     
-    playerNameInput.disabled = true;
-    startBtn.disabled = true;
+    setupScreen.style.display = 'none';
+    leaderboardContainer.style.display = 'none';
+    donationContainer.style.display = 'none';
+    gameScreen.style.display = 'flex';
 
+    if (!isMuted && backgroundMusic.paused) {
+        backgroundMusic.play().catch(e => console.error("Audio autoplay was blocked.", e));
+    }
+    
     runGame();
 }
 
@@ -88,13 +147,12 @@ function initiateGameOverSequence() {
     canvas.classList.add('snake-hit');
     setTimeout(() => {
         canvas.classList.remove('snake-hit');
-        playerNameInput.disabled = false;
-        startBtn.disabled = false;
         processEndOfGame();
         finalScoreDisplay.textContent = score;
         gameOverScreen.classList.add('visible');
     }, 600);
 }
+
 
 // --- Lógica del Juego ---
 function resetGame() {
@@ -148,7 +206,6 @@ function move() {
 // --- Controles ---
 function handleDirectionChange(newDx, newDy) {
     if (!gameInterval) return;
-    // Prevenir que la serpiente se invierta
     if (dx !== 0 && newDx !== 0) return;
     if (dy !== 0 && newDy !== 0) return;
     dx = newDx;
@@ -184,8 +241,14 @@ boostBtn.addEventListener('touchend', () => setSpeed(NORMAL_SPEED));
 
 // --- Lógica Central de Fin de Partida ---
 async function processEndOfGame() {
-    const name = playerNameInput.value.trim();
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const name = user.displayName;
+    const uid = user.uid;
+    const photoURL = user.photoURL;
     const currentScore = score;
+    
     let locationData;
     try {
         const response = await fetch('https://ipapi.co/json/');
@@ -196,12 +259,15 @@ async function processEndOfGame() {
     }
     const country = locationData.country_name;
     const countryCode = locationData.country_code;
+
     const boardBeforeUpdate = await getLeaderboard();
     const seenCountriesDoc = await db.collection('gameStats').doc('seenCountries').get();
     const seenCountries = seenCountriesDoc.exists ? seenCountriesDoc.data().list : [];
-    await addScoreToLeaderboard(name, currentScore, country, countryCode);
+
+    await addScoreToLeaderboard(uid, name, photoURL, currentScore, country, countryCode);
     const updatedBoard = await getLeaderboard();
     renderLeaderboard(updatedBoard);
+
     sendSmartNotification(name, currentScore, country, boardBeforeUpdate, updatedBoard, seenCountries, locationData);
 }
 
@@ -237,10 +303,11 @@ async function getLeaderboard() {
     return board;
 }
 
-async function addScoreToLeaderboard(name, newScore, country, countryCode) {
-    const playerRef = db.collection('leaderboard').doc(name.toLowerCase());
+async function addScoreToLeaderboard(uid, name, photoURL, newScore, country, countryCode) {
+    const playerRef = db.collection('leaderboard').doc(uid);
     const doc = await playerRef.get();
-    const playerData = { name, score: newScore, country, countryCode };
+    const playerData = { name, photoURL, score: newScore, country, countryCode, uid };
+
     if (doc.exists) {
         if (newScore >= doc.data().score) {
             await playerRef.update(playerData);
@@ -258,18 +325,27 @@ function renderLeaderboard(board) {
     }
     board.forEach(entry => {
         const li = document.createElement('li');
+        
+        const playerImg = document.createElement('img');
+        playerImg.className = 'leaderboard-avatar';
+        playerImg.src = entry.photoURL || 'https://i.imgur.com/sC5gU4e.png';
+        li.appendChild(playerImg);
+
         if (entry.countryCode && entry.countryCode !== 'N/A' && entry.countryCode.length === 2) {
             const flagImg = document.createElement('img');
+            flagImg.className = 'leaderboard-flag';
             flagImg.src = `https://flagcdn.com/w20/${entry.countryCode.toLowerCase()}.png`;
             flagImg.alt = entry.country;
             flagImg.title = entry.country;
             li.appendChild(flagImg);
         } else {
-            const fallbackEmoji = document.createTextNode('🌐 ');
+            const fallbackEmoji = document.createTextNode('🌐');
             li.appendChild(fallbackEmoji);
         }
+        
         const textNode = document.createTextNode(` ${entry.name} - ${entry.score}`);
         li.appendChild(textNode);
+        
         leaderboardList.appendChild(li);
     });
 }
@@ -294,8 +370,8 @@ async function sendSmartNotification(name, currentScore, country, boardBefore, b
             }
         }
     }
-    const oldIndex = boardBefore.findIndex(p => p.id === name.toLowerCase());
-    const newIndex = boardAfter.findIndex(p => p.id === name.toLowerCase());
+    const oldIndex = boardBefore.findIndex(p => p.id === auth.currentUser.uid);
+    const newIndex = boardAfter.findIndex(p => p.id === auth.currentUser.uid);
     const enteredTop5 = newIndex !== -1 && newIndex < 5 && (oldIndex === -1 || oldIndex >= 5);
     if (enteredTop5 && !shouldSendEmail) {
         shouldSendEmail = true;
@@ -341,7 +417,6 @@ function shareToWhatsApp() {
     window.open(whatsappUrl, '_blank');
 }
 
-
 // --- INICIALIZACIÓN ---
 async function initialLoad() {
     const savedMuteState = localStorage.getItem('gameMuted');
@@ -355,11 +430,12 @@ async function initialLoad() {
     updatePlayCount(true);
 }
 
+// Event Listeners
+loginBtn.addEventListener('click', signInWithGoogle);
+logoutBtn.addEventListener('click', signOut);
 startBtn.addEventListener('click', startGame);
 playAgainBtn.addEventListener('click', runGame);
-lobbyBtn.addEventListener('click', () => {
-    gameOverScreen.classList.remove('visible');
-});
+lobbyBtn.addEventListener('click', showLobby);
 muteBtn.addEventListener('click', toggleMute);
 twitterShareBtn.addEventListener('click', shareToTwitter);
 whatsappShareBtn.addEventListener('click', shareToWhatsApp);
