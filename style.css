@@ -29,8 +29,24 @@ h1 {
   color: #00ff88;
   font-size: 1.8rem;
   text-shadow: 0 0 5px #00ff88;
-  margin-top: 30px; /* Espacio para el botón de mute */
-  margin-bottom: 15px;
+  margin-top: 30px;
+}
+
+#gameScreen {
+  display: none; /* Oculto por defecto, se activa con JS */
+  flex-direction: column;
+  align-items: center;
+}
+
+#gameCanvas {
+  background: #2c2c2c;
+  border: 2px solid #00ff88;
+  width: 100%;
+  max-width: 450px;
+  aspect-ratio: 1 / 1;
+  display: block;
+  border-radius: 8px;
+  margin: 15px auto 0 auto;
 }
 
 .game-info {
@@ -48,20 +64,9 @@ h1 {
   color: #00ff88;
 }
 
-#gameCanvas {
-  background: #2c2c2c;
-  border: 2px solid #00ff88;
-  width: 100%;
-  max-width: 450px;
-  aspect-ratio: 1 / 1;
-  display: block;
-  border-radius: 8px;
-  margin: 15px auto;
-}
-
 input, button {
   padding: 10px 16px;
-  margin: 5px;
+  margin: 10px 5px;
   border: none;
   border-radius: 6px;
   font-size: 16px;
@@ -91,12 +96,6 @@ button:active {
   transform: scale(0.95);
 }
 
-button:disabled {
-    background-color: #555;
-    cursor: not-allowed;
-}
-
-
 /* Leaderboard styles */
 #leaderboard {
   text-align: left;
@@ -104,7 +103,7 @@ button:disabled {
   background-color: #0d0d0d;
   padding: 15px 25px;
   border-radius: 8px;
-  max-height: 150px;
+  max-height: 200px;
   overflow-y: auto;
   width: 100%;
   box-sizing: border-box;
@@ -199,19 +198,16 @@ button:disabled {
     border-top: 1px solid #444;
     padding-top: 15px;
 }
-
 .share-section p {
     margin: 0 0 10px 0;
     font-size: 14px;
     color: #aaa;
 }
-
 .share-buttons {
     display: flex;
     justify-content: center;
     gap: 15px;
 }
-
 .share-button {
     border: none;
     border-radius: 5px;
@@ -220,18 +216,12 @@ button:disabled {
     font-weight: bold;
     color: white;
 }
-
-.share-button.twitter {
-    background-color: #1DA1F2;
-}
-
-.share-button.whatsapp {
-    background-color: #25D366;
-}
+.share-button.twitter { background-color: #1DA1F2; }
+.share-button.whatsapp { background-color: #25D366; }
 
 /* Controles Móviles */
 .mobile-controls-container {
-  display: none; /* Oculto en escritorio */
+  display: none; /* Se activa con media query */
   align-items: center;
   justify-content: center;
   margin-top: 20px;
@@ -285,15 +275,13 @@ button:disabled {
   color: #1f1f1f;
 }
 
-
-/* --- Estilos Misceláneos --- */
+/* Estilos Misceláneos */
 .top-bar {
     position: absolute;
     top: 15px;
     right: 15px;
     z-index: 20;
 }
-
 .icon-button {
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid #555;
@@ -318,9 +306,8 @@ button:disabled {
     animation: flash-red 0.1s 4 alternate;
 }
 
-/* Media Query para Móviles */
-@media (max-width: 880px) {
-  .mobile-controls-container {
-    display: flex;
-  }
+@media (max-width: 768px) {
+    .mobile-controls-container {
+        display: flex;
+    }
 }
