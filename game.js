@@ -1,4 +1,4 @@
-// --- Configuración de Firebase y EmailJS ---
+// --- Configuración ---
 const firebaseConfig = {
   apiKey: "AIzaSyBpAWJ6ZVO5oLfyLpC8cZNdiTk6lt1-HFo",
   authDomain: "profile-minigame.firebaseapp.com",
@@ -43,6 +43,8 @@ const downBtn = document.getElementById('downBtn');
 const leftBtn = document.getElementById('leftBtn');
 const rightBtn = document.getElementById('rightBtn');
 const boostBtn = document.getElementById('boostBtn');
+const twitterShareBtn = document.getElementById('twitterShareBtn');
+const whatsappShareBtn = document.getElementById('whatsappShareBtn');
 
 // --- Variables del Juego ---
 let snake, food, dx, dy, score, gameInterval;
@@ -51,7 +53,6 @@ const NORMAL_SPEED = 150;
 const BOOST_SPEED = 60;
 let currentSpeed = NORMAL_SPEED;
 let isMuted = false;
-
 
 // --- Funciones de Flujo del Juego ---
 
@@ -87,7 +88,7 @@ function runGame() {
 }
 
 function initiateGameOverSequence() {
-    if (!gameInterval) return; // Prevenir múltiples llamadas
+    if (!gameInterval) return;
     gameOverSound.play();
     clearInterval(gameInterval);
     gameInterval = null;
@@ -101,7 +102,6 @@ function initiateGameOverSequence() {
 }
 
 // --- Lógica del Juego ---
-
 function resetGame() {
   snake = [{ x: 8, y: 8 }];
   food = { x: Math.floor(Math.random() * gridSize), y: Math.floor(Math.random() * gridSize) };
@@ -151,7 +151,6 @@ function move() {
 }
 
 // --- Controles ---
-
 function handleDirectionChange(newDx, newDy) {
     if (!gameInterval) return;
     if ((newDx !== 0 && dx === -newDx) || (newDy !== 0 && dy === -newDy)) return;
@@ -186,9 +185,7 @@ boostBtn.addEventListener('mouseleave', () => setSpeed(NORMAL_SPEED));
 boostBtn.addEventListener('touchstart', (e) => { e.preventDefault(); setSpeed(BOOST_SPEED); });
 boostBtn.addEventListener('touchend', () => setSpeed(NORMAL_SPEED));
 
-
 // --- Lógica Central de Fin de Partida ---
-
 async function processEndOfGame() {
     const name = playerNameInput.value.trim();
     const currentScore = score;
@@ -212,7 +209,6 @@ async function processEndOfGame() {
 }
 
 // --- Funciones de Firebase ---
-
 async function updatePlayCount(isInitialLoad = false) {
     const counterRef = db.collection('gameStats').doc('playCounter');
     try {
@@ -235,7 +231,7 @@ async function updatePlayCount(isInitialLoad = false) {
 }
 
 async function getLeaderboard() {
-    const leaderboardRef = db.collection('leaderboard').orderBy('score', 'desc').limit(10);
+    const leaderboardRef = db.collection('leaderboard').orderBy('score', 'desc').limit(100);
     const snapshot = await leaderboardRef.get();
     const board = [];
     snapshot.forEach(doc => {
@@ -282,13 +278,11 @@ function renderLeaderboard(board) {
 }
 
 // --- ENVÍO DE CORREO ---
-async function sendSmartNotification(name, country, boardBefore, boardAfter, seenCountries, locationData) {
-    const currentScore = score;
+async function sendSmartNotification(name, currentScore, country, boardBefore, boardAfter, seenCountries, locationData) {
     if (currentScore === 0) {
         console.log("Score is 0, no notification sent.");
         return;
     }
-
     let shouldSendEmail = false;
     let emailReason = "";
     if (country && country !== 'N/A' && !seenCountries.includes(country)) {
@@ -326,9 +320,7 @@ async function sendSmartNotification(name, country, boardBefore, boardAfter, see
         .catch(err => console.error("EmailJS send failed:", err));
 }
 
-
-// --- Lógica de Audio y Carga Inicial ---
-
+// --- Lógica de Audio y Compartir ---
 function toggleMute() {
     isMuted = !isMuted;
     backgroundMusic.muted = isMuted;
@@ -336,6 +328,23 @@ function toggleMute() {
     localStorage.setItem('gameMuted', isMuted.toString());
 }
 
+function shareToTwitter() {
+    const finalScore = finalScoreDisplay.textContent;
+    const gameUrl = "https://franbucho.github.io/ProfileMiniGame/";
+    const text = `I scored ${finalScore} points in Retro Snake Worldwide! Can you beat my score? 🐍 #RetroSnake #JavaScriptGame`;
+    const twitterUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(gameUrl)}&text=${encodeURIComponent(text)}`;
+    window.open(twitterUrl, '_blank');
+}
+
+function shareToWhatsApp() {
+    const finalScore = finalScoreDisplay.textContent;
+    const gameUrl = "https://franbucho.github.io/ProfileMiniGame/";
+    const text = `I scored ${finalScore} points in Retro Snake Worldwide! Can you beat my score? 🐍\n\nPlay here: ${gameUrl}`;
+    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+    window.open(whatsappUrl, '_blank');
+}
+
+// --- INICIALIZACIÓN ---
 async function initialLoad() {
     const savedMuteState = localStorage.getItem('gameMuted');
     if (savedMuteState === 'true') {
@@ -355,5 +364,7 @@ playAgainBtn.addEventListener('click', () => {
 });
 lobbyBtn.addEventListener('click', showSetupScreen);
 muteBtn.addEventListener('click', toggleMute);
+twitterShareBtn.addEventListener('click', shareToTwitter);
+whatsappShareBtn.addEventListener('click', shareToWhatsApp);
 
 initialLoad();

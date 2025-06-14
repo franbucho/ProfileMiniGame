@@ -198,6 +198,48 @@ button:active {
     margin: 0;
 }
 
+/* Estilos para compartir */
+.share-section {
+    margin-top: 25px;
+    border-top: 1px solid #444;
+    padding-top: 15px;
+}
+
+.share-section p {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    color: #aaa;
+}
+
+.share-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+.share-button {
+    border: none;
+    border-radius: 5px;
+    padding: 8px 15px;
+    font-size: 14px;
+    font-weight: bold;
+    color: white;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.share-button:hover {
+    opacity: 0.85;
+}
+
+.share-button.twitter {
+    background-color: #1DA1F2;
+}
+
+.share-button.whatsapp {
+    background-color: #25D366;
+}
+
 /* Controles Móviles */
 .mobile-controls-container {
   display: none;
@@ -254,27 +296,6 @@ button:active {
   color: #1f1f1f;
 }
 
-/* --- Nuevos Estilos Misceláneos --- */
-.top-bar {
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    z-index: 20;
-}
-
-.icon-button {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid #555;
-    color: #aaa;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    font-size: 20px;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
 
 /* Animación de muerte */
 @keyframes flash-red {
@@ -286,7 +307,7 @@ button:active {
     animation: flash-red 0.1s 4 alternate;
 }
 
-/* --- ESTILOS PARA TELÉFONOS Y PANTALLAS PEQUEÑAS --- */
+/* --- ESTILOS PARA TELÉFONOS --- */
 @media (max-width: 880px) {
   body {
     height: auto;
