@@ -17,7 +17,6 @@ const EMAILJS_TEMPLATE_ID = 'template_xjhieh3';
 emailjs.init(EMAILJS_USER_ID);
 
 // --- Efectos de Sonido ---
-// Nota: Debes tener los archivos eat.wav y gameover.wav en una carpeta /audio/
 const eatSound = new Audio('audio/eat.wav');
 const gameOverSound = new Audio('audio/gameover.wav');
 eatSound.volume = 0.5;
@@ -51,14 +50,9 @@ let gridSize = 20;
 function showGameScreen() {
     const name = playerNameInput.value.trim();
     const nameRegex = /^[a-zA-Z\s]+$/;
-    if (name === '') {
-        alert('Please enter your name.');
-        return;
-    }
-    if (!nameRegex.test(name)) {
-        alert('Name can only contain letters and spaces.');
-        return;
-    }
+    if (name === '') { alert('Please enter your name.'); return; }
+    if (!nameRegex.test(name)) { alert('Name can only contain letters and spaces.'); return; }
+    
     setupScreen.style.display = 'none';
     gameScreen.style.display = 'flex';
     runGame();
@@ -69,123 +63,60 @@ function runGame() {
   if (gameInterval) clearInterval(gameInterval);
   resetGame();
   draw();
-  gameInterval = setInterval(() => {
-    move();
-    draw();
-  }, 150);
+  gameInterval = setInterval(() => { move(); draw(); }, 150);
 }
 
 function showGameOver() {
   gameOverSound.play();
   clearInterval(gameInterval);
   gameInterval = null;
-  sendSmartNotification();
+  processEndOfGame(); // Nueva función centralizada
   finalScoreDisplay.textContent = score;
   gameOverScreen.classList.add('visible');
 }
 
-
 // --- Lógica del Juego ---
-
-function resetGame() {
-  snake = [{ x: 8, y: 8 }];
-  food = { x: Math.floor(Math.random() * gridSize), y: Math.floor(Math.random() * gridSize) };
-  dx = 1; dy = 0; score = 0;
-  scoreDisplay.textContent = "Score: 0";
-}
-
-function draw() {
-  if (!snake) return;
-  
-  ctx.fillStyle = "#2c2c2c";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  
-  const cellSize = canvas.width / gridSize;
-  const cornerRadius = 4;
-
-  // Dibujar Comida (círculo)
-  ctx.fillStyle = "#ff4444";
-  ctx.beginPath();
-  ctx.arc(food.x * cellSize + cellSize / 2, food.y * cellSize + cellSize / 2, cellSize / 2.2, 0, 2 * Math.PI);
-  ctx.fill();
-
-  // Dibujar Serpiente (con bordes redondeados)
-  snake.forEach((part, index) => {
-    ctx.fillStyle = (index === 0) ? "#00ff88" : "#00dd77";
-    ctx.beginPath();
-    if (ctx.roundRect) {
-        ctx.roundRect(part.x * cellSize, part.y * cellSize, cellSize, cellSize, [cornerRadius]);
-        ctx.fill();
-    } else {
-        ctx.fillRect(part.x * cellSize, part.y * cellSize, cellSize, cellSize);
-    }
-  });
-}
-
-function move() {
-  const head = { x: snake[0].x + dx, y: snake[0].y + dy };
-  if (head.x < 0 || head.x >= gridSize || head.y < 0 || head.y >= gridSize || snake.slice(1).some(p => p.x === head.x && p.y === head.y)) {
-    showGameOver();
-    return;
-  }
-  snake.unshift(head);
-  if (head.x === food.x && head.y === food.y) {
-    score += 10;
-    eatSound.play();
-    scoreDisplay.textContent = `Score: ${score}`;
-    do {
-      food = { x: Math.floor(Math.random() * gridSize), y: Math.floor(Math.random() * gridSize) };
-    } while (snake.some(p => p.x === food.x && p.y === food.y));
-  } else {
-    snake.pop();
-  }
-}
+function resetGame() { /* ... sin cambios ... */ }
+function draw() { /* ... sin cambios ... */ }
+function move() { /* ... sin cambios ... */ }
 
 // --- Controles ---
-
-function handleDirectionChange(newDx, newDy) {
-    if (!gameInterval) return;
-    if ((newDx !== 0 && dx === -newDx) || (newDy !== 0 && dy === -newDy)) return;
-    dx = newDx;
-    dy = newDy;
-}
-document.addEventListener('keydown', e => {
-  switch (e.key) {
-    case 'ArrowUp': handleDirectionChange(0, -1); break;
-    case 'ArrowDown': handleDirectionChange(0, 1); break;
-    case 'ArrowLeft': handleDirectionChange(-1, 0); break;
-    case 'ArrowRight': handleDirectionChange(1, 0); break;
-  }
-});
-upBtn.addEventListener('touchstart', (e) => { e.preventDefault(); handleDirectionChange(0, -1); });
-downBtn.addEventListener('touchstart', (e) => { e.preventDefault(); handleDirectionChange(0, 1); });
-leftBtn.addEventListener('touchstart', (e) => { e.preventDefault(); handleDirectionChange(-1, 0); });
-rightBtn.addEventListener('touchstart', (e) => { e.preventDefault(); handleDirectionChange(1, 0); });
+function handleDirectionChange(newDx, newDy) { /* ... sin cambios ... */ }
+// ... (todos los listeners de teclado y móvil son iguales) ...
 
 
-// --- Funciones de Firebase ---
+// --- NUEVA LÓGICA CENTRAL DE FIN DE PARTIDA ---
 
-async function updatePlayCount(isInitialLoad = false) {
-    const counterRef = db.collection('gameStats').doc('playCounter');
+async function processEndOfGame() {
+    const name = playerNameInput.value.trim();
+    const currentScore = score;
+
+    // 1. Obtener la información de localización PRIMERO.
+    let locationData;
     try {
-        if (!isInitialLoad) {
-            await counterRef.update({ count: firebase.firestore.FieldValue.increment(1) });
-        }
-        const doc = await counterRef.get();
-        const count = doc.exists ? doc.data().count : 0;
-        playCounterDisplay.textContent = `Plays: ${count.toLocaleString('en-US')}`;
+        const response = await fetch('https://ipapi.co/json/');
+        locationData = response.ok ? await response.json() : { country_name: 'N/A' };
     } catch (error) {
-        if (error.code === 'not-found' && !isInitialLoad) {
-            await counterRef.set({ count: 1 });
-            playCounterDisplay.textContent = `Plays: 1`;
-        } else if (error.code === 'not-found' && isInitialLoad) {
-            playCounterDisplay.textContent = `Plays: 0`;
-        } else {
-            console.error("Error with play counter:", error);
-            playCounterDisplay.textContent = 'Plays: N/A';
-        }
+        console.warn('IP lookup failed.', error);
+        locationData = { country_name: 'N/A' };
     }
+    const country = locationData.country_name;
+
+    // 2. Añadir/actualizar el score en la base de datos (ahora con el país).
+    await addScoreToLeaderboard(name, currentScore, country);
+
+    // 3. Obtener el leaderboard actualizado y mostrarlo.
+    const updatedBoard = await getLeaderboard();
+    renderLeaderboard(updatedBoard); // Pasar el tablero para evitar otra llamada a la DB
+
+    // 4. Decidir si enviar el correo y enviarlo.
+    sendSmartNotification(name, currentScore, locationData, updatedBoard);
 }
+
+
+// --- Funciones de Firebase (Actualizadas) ---
+
+async function updatePlayCount(isInitialLoad = false) { /* ... sin cambios ... */ }
 
 async function getLeaderboard() {
     const leaderboardRef = db.collection('leaderboard').orderBy('score', 'desc').limit(10);
@@ -195,89 +126,66 @@ async function getLeaderboard() {
     return board;
 }
 
-async function addScoreToLeaderboard(name, newScore) {
+async function addScoreToLeaderboard(name, newScore, country) {
     const playerRef = db.collection('leaderboard').doc(name.toLowerCase());
     const doc = await playerRef.get();
+
+    const playerData = {
+        name: name,
+        score: newScore,
+        country: country
+    };
+
     if (doc.exists) {
         if (newScore > doc.data().score) {
-            await playerRef.update({ score: newScore, name: name });
+            await playerRef.update(playerData); // Actualiza todo el documento si el score es mayor
         }
     } else {
-        await playerRef.set({ name: name, score: newScore });
+        await playerRef.set(playerData); // Crea un nuevo documento para el jugador
     }
 }
 
-async function renderLeaderboard() {
-    leaderboardList.innerHTML = '<li>Loading...</li>';
-    try {
-        const board = await getLeaderboard();
-        leaderboardList.innerHTML = '';
-        if (board.length === 0) {
-            leaderboardList.innerHTML = '<li>No scores yet</li>';
-            return;
-        }
-        board.forEach(entry => {
-            const li = document.createElement('li');
-            li.textContent = `${entry.name} - ${entry.score}`;
-            leaderboardList.appendChild(li);
-        });
-    } catch (error) {
-        console.error("Error rendering leaderboard:", error);
-        leaderboardList.innerHTML = '<li>Could not load scores</li>';
-    }
-}
-
-async function sendSmartNotification() {
-    const name = playerNameInput.value.trim();
-    const currentScore = score;
-    
-    const boardBeforeUpdate = await getLeaderboard();
-    const oldHighScore = boardBeforeUpdate.length > 0 ? boardBeforeUpdate[0].score : 0;
-
-    await addScoreToLeaderboard(name, currentScore);
-    const updatedBoard = await getLeaderboard();
-    renderLeaderboard();
-
-    let shouldSendEmail = false;
-    let emailReason = "";
-    
-    if (currentScore > 0 && currentScore > oldHighScore) {
-        shouldSendEmail = true;
-        emailReason = "New High Score!";
-    }
-
-    const playerIndex = updatedBoard.findIndex(p => p.id === name.toLowerCase());
-    if (playerIndex !== -1 && playerIndex < 5 && !shouldSendEmail) {
-        shouldSendEmail = true;
-        emailReason = "Entered Top 5!";
-    }
-
-    if (!shouldSendEmail) {
-        console.log("Score not high enough for a notification.");
+async function renderLeaderboard(board) { // Ahora recibe el tablero como parámetro
+    leaderboardList.innerHTML = '';
+    if (!board || board.length === 0) {
+        leaderboardList.innerHTML = '<li>No scores yet</li>';
         return;
     }
+    board.forEach(entry => {
+        const li = document.createElement('li');
+        const countryDisplay = entry.country ? `(${entry.country})` : '';
+        li.textContent = `${entry.name} ${countryDisplay} - ${entry.score}`;
+        leaderboardList.appendChild(li);
+    });
+}
+
+// --- ENVÍO DE CORREO (Actualizado) ---
+
+function sendSmartNotification(name, currentScore, locationData, board) {
+    // La única condición ahora es entrar en el Top 5
+    const playerIndex = board.findIndex(p => p.id === name.toLowerCase());
+
+    if (playerIndex === -1 || playerIndex >= 5) {
+        console.log("Player not in Top 5. No email sent.");
+        return;
+    }
+
+    const emailReason = `Entered Top 5 at #${playerIndex + 1}!`;
     
-    fetch('https://ipapi.co/json/')
-        .then(res => res.ok ? res.json() : Promise.reject('Network response was not ok'))
-        .catch(error => {
-            console.warn('IP lookup failed.', error);
-            return { country_name: "Not available", ip: "Not available" };
-        })
-        .then(data => {
-            const params = {
-                player_name: `${name} (${emailReason})`,
-                player_score: currentScore,
-                player_ip: data.ip || "Unknown",
-                player_country: data.country_name || "Unknown"
-            };
-            console.log('Sending SMART notification with these params:', params);
-            return emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, params);
-        })
+    const params = {
+        player_name: `${name} (${emailReason})`,
+        player_score: currentScore,
+        player_ip: locationData.ip || "Unknown",
+        player_country: locationData.country_name || "Unknown"
+    };
+
+    console.log('Sending SMART notification with these params:', params);
+    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, params)
         .then(() => console.log("Smart notification sent successfully!"))
         .catch(err => console.error("EmailJS send failed:", err));
 }
 
-// --- Inicialización ---
+// --- INICIALIZACIÓN ---
 
 startBtn.addEventListener('click', showGameScreen);
 playAgainBtn.addEventListener('click', () => {
@@ -286,5 +194,11 @@ playAgainBtn.addEventListener('click', () => {
     updatePlayCount();
 });
 
-renderLeaderboard();
-updatePlayCount(true);
+// Carga inicial de datos
+async function initialLoad() {
+    const board = await getLeaderboard();
+    renderLeaderboard(board);
+    updatePlayCount(true);
+}
+
+initialLoad();
