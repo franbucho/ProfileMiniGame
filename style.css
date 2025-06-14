@@ -1,6 +1,6 @@
 body {
   margin: 0;
-  font-family: 'Poppins', sans-serif; /* Fuente moderna por defecto */
+  font-family: 'Poppins', sans-serif;
   background-color: #121212;
   color: #e0e0e0;
   display: flex;
@@ -25,7 +25,7 @@ body {
 }
 
 h1 {
-  font-family: 'Press Start 2P', cursive; /* Fuente retro para el título */
+  font-family: 'Press Start 2P', cursive;
   color: #00ff88;
   font-size: 2.2rem;
   text-shadow: 0 0 5px #00ff88, 0 0 10px #00ff88;
@@ -48,13 +48,13 @@ h1 {
 }
 
 #gameCanvas {
-  background: #2c2c2c; /* Fondo del canvas ligeramente más claro */
+  background: #2c2c2c;
   border: 2px solid #00ff88;
   width: 100%;
   max-width: 450px;
   aspect-ratio: 1 / 1;
   display: block;
-  border-radius: 8px; /* Bordes redondeados para el canvas */
+  border-radius: 8px;
 }
 
 .game-info {
@@ -175,84 +175,84 @@ button:active {
   margin-top: 20px;
 }
 
-/* Controles Móviles */
+/* --- ESTILOS MEJORADOS PARA CONTROLES MÓVILES --- */
 .mobile-controls-container {
-  display: none;
+  display: none; /* Oculto en escritorio */
+  justify-content: center;
+  margin-top: 20px;
+  padding: 10px;
 }
 
-/* --- ESTILOS PARA TELÉFONOS --- */
+#mobileControls {
+  display: grid;
+  grid-template-columns: repeat(3, 70px);
+  grid-template-rows: repeat(3, 70px);
+  gap: 15px; /* Más separación entre botones */
+  justify-content: center;
+}
+
+/* Posicionamiento de cada botón en la cruceta */
+#upBtn    { grid-area: 1 / 2 / 2 / 3; }
+#leftBtn  { grid-area: 2 / 1 / 3 / 2; }
+#rightBtn { grid-area: 2 / 3 / 3 / 4; }
+#downBtn  { grid-area: 3 / 2 / 4 / 3; }
+
+.mobile-controls-container button {
+  width: 100%; /* El grid define el tamaño, ahora son cuadrados */
+  height: 100%;
+  font-size: 28px;
+  margin: 0; /* El 'gap' del grid maneja la separación */
+  background-color: #333;
+  color: #00ff88;
+  border: 1px solid #00ff88;
+  border-radius: 12px; /* Bordes redondeados */
+}
+
+.mobile-controls-container button:active {
+  background-color: #00ff88;
+  color: #1f1f1f;
+  transform: scale(0.95);
+}
+
+
+/* --- ESTILOS PARA TELÉFONOS Y PANTALLAS PEQUEÑAS --- */
 @media (max-width: 880px) {
   body {
     height: auto;
     min-height: 100vh;
     padding: 10px 0;
   }
-
   .container {
     padding: 15px;
     width: 95%;
     max-width: 500px;
   }
-  
   .main-content {
     flex-direction: column;
     align-items: center;
     gap: 20px;
   }
-  
   #leaderboard {
     width: 100%;
     max-height: 120px;
   }
-
   h1 {
     font-size: 1.5rem;
     margin-top: 0;
     margin-bottom: 10px;
   }
-
   input, button {
     margin: 8px 5px;
     padding: 8px 12px;
   }
-  
   .game-info {
     margin-bottom: 10px;
   }
-
   #scoreDisplay, #playCounterDisplay {
     font-size: 1rem;
   }
-  
+  /* Mostrar los controles móviles */
   .mobile-controls-container {
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin-top: 15px;
-  }
-  
-  .mobile-controls-container .middle-row {
-    display: flex;
-    justify-content: center;
-    width: 100%;
-  }
-
-  .mobile-controls-container button {
-    width: 60px;
-    height: 60px;
-    font-size: 24px;
-    margin: 5px;
-    background-color: #333;
-    color: #00ff88;
-    border: 1px solid #00ff88;
-  }
-
-  .mobile-controls-container button:active {
-    background-color: #00ff88;
-    color: #1f1f1f;
-  }
-
-  .mobile-controls-container .middle-row button {
-    width: 80px;
   }
 }
