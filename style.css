@@ -14,10 +14,10 @@ body {
 .container {
   position: relative;
   background-color: #1f1f1f;
-  padding: 30px;
+  padding: 20px;
   border-radius: 12px;
   box-shadow: 0 0 15px #00ff88aa;
-  max-width: 850px;
+  max-width: 500px;
   width: 90%;
   text-align: center;
   overflow: hidden;
@@ -27,24 +27,25 @@ body {
 h1 {
   font-family: 'Press Start 2P', cursive;
   color: #00ff88;
-  font-size: 2.2rem;
-  text-shadow: 0 0 5px #00ff88, 0 0 10px #00ff88;
+  font-size: 1.8rem;
+  text-shadow: 0 0 5px #00ff88;
+  margin-top: 30px; /* Espacio para el botón de mute */
+  margin-bottom: 15px;
 }
 
-/* Layout Principal */
-.main-content {
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  gap: 30px;
-  margin-top: 20px;
+.game-info {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    width: 100%;
+    max-width: 400px;
+    margin: 15px auto 0 auto;
 }
 
-#gameScreen {
-  display: none;
-  flex-direction: column;
-  align-items: center;
-  flex-basis: 500px;
+#scoreDisplay, #playCounterDisplay {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 1rem;
+  color: #00ff88;
 }
 
 #gameCanvas {
@@ -55,27 +56,12 @@ h1 {
   aspect-ratio: 1 / 1;
   display: block;
   border-radius: 8px;
-}
-
-.game-info {
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    width: 100%;
-    max-width: 450px;
-    margin: 0 auto 15px auto;
-}
-
-#scoreDisplay, #playCounterDisplay {
-  font-family: 'Press Start 2P', cursive;
-  font-size: 1.2rem;
-  color: #00ff88;
-  margin: 0;
+  margin: 15px auto;
 }
 
 input, button {
   padding: 10px 16px;
-  margin: 10px 5px;
+  margin: 5px;
   border: none;
   border-radius: 6px;
   font-size: 16px;
@@ -105,28 +91,37 @@ button:active {
   transform: scale(0.95);
 }
 
+button:disabled {
+    background-color: #555;
+    cursor: not-allowed;
+}
+
+
 /* Leaderboard styles */
 #leaderboard {
-  flex-basis: 300px;
   text-align: left;
   color: #00ff88;
   background-color: #0d0d0d;
   padding: 15px 25px;
   border-radius: 8px;
-  max-height: 470px;
+  max-height: 150px;
   overflow-y: auto;
   width: 100%;
+  box-sizing: border-box;
+  margin-top: 20px;
 }
 
 #leaderboard h2 {
   font-family: 'Press Start 2P', cursive;
   font-size: 1.2rem;
   margin-top: 0;
+  margin-bottom: 15px;
   text-align: center;
 }
 
 #leaderboardList {
   padding-left: 20px;
+  margin: 0;
 }
 
 #leaderboardList li {
@@ -224,12 +219,6 @@ button:active {
     font-size: 14px;
     font-weight: bold;
     color: white;
-    cursor: pointer;
-    transition: opacity 0.2s;
-}
-
-.share-button:hover {
-    opacity: 0.85;
 }
 
 .share-button.twitter {
@@ -242,7 +231,7 @@ button:active {
 
 /* Controles Móviles */
 .mobile-controls-container {
-  display: none;
+  display: none; /* Oculto en escritorio */
   align-items: center;
   justify-content: center;
   margin-top: 20px;
@@ -297,6 +286,28 @@ button:active {
 }
 
 
+/* --- Estilos Misceláneos --- */
+.top-bar {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    z-index: 20;
+}
+
+.icon-button {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid #555;
+    color: #aaa;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-size: 20px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 /* Animación de muerte */
 @keyframes flash-red {
     from { filter: none; }
@@ -307,47 +318,8 @@ button:active {
     animation: flash-red 0.1s 4 alternate;
 }
 
-/* --- ESTILOS PARA TELÉFONOS --- */
+/* Media Query para Móviles */
 @media (max-width: 880px) {
-  body {
-    height: auto;
-    min-height: 100vh;
-    padding: 10px 0;
-  }
-  .container {
-    padding: 15px;
-    width: 95%;
-    max-width: 500px;
-  }
-  .main-content {
-    flex-direction: column;
-    align-items: center;
-    gap: 20px;
-    flex-grow: 0;
-  }
-  #leaderboard {
-    width: 100%;
-    max-height: 150px;
-  }
-  #leaderboardList li {
-    font-size: 0.85rem;
-  }
-  h1 {
-    font-size: 1.5rem;
-    margin-top: 0;
-    margin-bottom: 10px;
-  }
-  input, button {
-    margin: 8px 5px;
-    padding: 8px 12px;
-  }
-  .game-info {
-    margin-top: 10px;
-    padding-top: 10px;
-  }
-  #scoreDisplay, #playCounterDisplay {
-    font-size: 1rem;
-  }
   .mobile-controls-container {
     display: flex;
   }
