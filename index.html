@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Profile MiniGame</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <title>Retro Snake Worldwide</title> <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+  
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -16,26 +16,13 @@
       <div class="top-bar">
         <button id="muteBtn" class="icon-button">🔊</button>
       </div>
-      <h1>Profile MiniGame</h1> 
-      <label for="playerName">Enter your name:</label>
+      <h1>Retro Snake Worldwide</h1> <label for="playerName">Enter your name:</label>
       <input type="text" id="playerName" placeholder="Player" maxlength="15" />
       <button id="startBtn">Continue</button>
     </div>
 
     <div id="gameScreen" style="display: none;">
-      <div class="game-info">
-        <div id="scoreDisplay">Score: 0</div>
-        <div id="playCounterDisplay">Plays: ...</div>
       </div>
-      <canvas id="gameCanvas" width="400" height="400"></canvas>
-      <div id="mobileControls" class="mobile-controls-container">
-          <button id="upBtn" class="d-pad">▲</button>
-          <button id="leftBtn" class="d-pad">◄</button>
-          <button id="rightBtn" class="d-pad">►</button>
-          <button id="downBtn" class="d-pad">▼</button>
-          <button id="boostBtn">BOOST</button>
-      </div>
-    </div>
 
     <div id="gameOverScreen" class="overlay-container">
       <div class="game-over-box">
@@ -45,18 +32,20 @@
           <button id="playAgainBtn">Play Again</button>
           <button id="lobbyBtn">Back to Lobby</button>
         </div>
+        <div class="share-section">
+            <p>Share your score!</p>
+            <div class="share-buttons">
+                <button id="twitterShareBtn" class="share-button twitter">X</button>
+                <button id="whatsappShareBtn" class="share-button whatsapp">WhatsApp</button>
+            </div>
+        </div>
       </div>
     </div>
 
     <div id="leaderboard">
-      <h2>🏆 Global Leaderboard</h2>
-      <ol id="leaderboardList"><li>Loading...</li></ol>
+      <h2>🏆 Global Top 100</h2> <ol id="leaderboardList"><li>Loading...</li></ol>
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-firestore-compat.js"></script>
-  <script type="module" src="game.js"></script>
-</body>
+  </body>
 </html>
