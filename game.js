@@ -24,8 +24,6 @@ backgroundMusic.loop = true;
 backgroundMusic.volume = 0.3;
 
 // --- Elementos del DOM ---
-const setupScreen = document.getElementById('setupScreen');
-const gameScreen = document.getElementById('gameScreen');
 const playerNameInput = document.getElementById('playerName');
 const startBtn = document.getElementById('startBtn');
 const canvas = document.getElementById('gameCanvas');
@@ -56,25 +54,20 @@ let isMuted = false;
 
 // --- Funciones de Flujo del Juego ---
 
-function showSetupScreen() {
-    gameOverScreen.classList.remove('visible');
-    gameScreen.style.display = 'none';
-    setupScreen.style.display = 'block';
-    renderLeaderboard();
-}
-
-function showGameScreen() {
+function startGame() {
     const name = playerNameInput.value.trim();
     const nameRegex = /^[a-zA-Z\s]+$/;
     if (name === '') { alert('Please enter your name.'); return; }
     if (!nameRegex.test(name)) { alert('Name can only contain letters and spaces.'); return; }
-    
+
     if (!isMuted && backgroundMusic.paused) {
         backgroundMusic.play().catch(e => console.error("Audio autoplay was blocked.", e));
     }
     
-    setupScreen.style.display = 'none';
-    gameScreen.style.display = 'flex';
+    // Deshabilitar controles de inicio en lugar de ocultar pantallas
+    playerNameInput.disabled = true;
+    startBtn.disabled = true;
+
     runGame();
 }
 
@@ -187,6 +180,10 @@ boostBtn.addEventListener('touchend', () => setSpeed(NORMAL_SPEED));
 
 // --- Lógica Central de Fin de Partida ---
 async function processEndOfGame() {
+    // Habilitar de nuevo los controles de inicio
+    playerNameInput.disabled = false;
+    startBtn.disabled = false;
+
     const name = playerNameInput.value.trim();
     const currentScore = score;
     let locationData;
@@ -344,6 +341,7 @@ function shareToWhatsApp() {
     window.open(whatsappUrl, '_blank');
 }
 
+
 // --- INICIALIZACIÓN ---
 async function initialLoad() {
     const savedMuteState = localStorage.getItem('gameMuted');
@@ -357,12 +355,14 @@ async function initialLoad() {
     updatePlayCount(true);
 }
 
-startBtn.addEventListener('click', showGameScreen);
+startBtn.addEventListener('click', startGame);
 playAgainBtn.addEventListener('click', () => {
     gameOverScreen.classList.remove('visible');
     runGame();
 });
-lobbyBtn.addEventListener('click', showSetupScreen);
+lobbyBtn.addEventListener('click', () => {
+    gameOverScreen.classList.remove('visible');
+});
 muteBtn.addEventListener('click', toggleMute);
 twitterShareBtn.addEventListener('click', shareToTwitter);
 whatsappShareBtn.addEventListener('click', shareToWhatsApp);
