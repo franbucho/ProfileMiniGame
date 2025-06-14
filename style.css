@@ -22,8 +22,6 @@ body {
   text-align: center;
   overflow: hidden;
   user-select: none;
-  display: flex;
-  flex-direction: column;
 }
 
 h1 {
@@ -40,8 +38,6 @@ h1 {
   align-items: flex-start;
   gap: 30px;
   margin-top: 20px;
-  width: 100%;
-  flex-grow: 1;
 }
 
 #gameScreen {
@@ -66,9 +62,8 @@ h1 {
     justify-content: space-around;
     align-items: center;
     width: 100%;
-    padding-top: 15px;
-    margin-top: 15px;
-    border-top: 1px solid #333;
+    max-width: 450px;
+    margin: 0 auto 15px auto;
 }
 
 #scoreDisplay, #playCounterDisplay {
@@ -149,7 +144,7 @@ button:active {
   border-radius: 2px;
 }
 
-/* Overlay de Game Over con animación */
+/* Overlay de Game Over */
 .overlay-container {
   position: absolute;
   top: 0;
@@ -192,13 +187,103 @@ button:active {
   color: #e0e0e0;
 }
 
-#playAgainBtn {
-  margin-top: 20px;
+.game-over-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 20px;
 }
 
-/* Controles Móviles (Ocultos en Escritorio) */
+.game-over-buttons button {
+    margin: 0;
+}
+
+/* Controles Móviles */
 .mobile-controls-container {
   display: none;
+  align-items: center;
+  justify-content: center;
+  margin-top: 20px;
+  padding: 10px;
+  gap: 20px;
+}
+
+#mobileControls {
+  display: grid;
+  grid-template-columns: repeat(3, 65px);
+  grid-template-rows: repeat(3, 65px);
+  gap: 12px;
+  justify-items: center;
+  align-items: center;
+}
+
+#upBtn    { grid-area: 1 / 2; }
+#leftBtn  { grid-area: 2 / 1; }
+#rightBtn { grid-area: 2 / 3; }
+#downBtn  { grid-area: 3 / 2; }
+
+.mobile-controls-container button.d-pad {
+  width: 100%;
+  height: 100%;
+  font-size: 28px;
+  margin: 0;
+  background-color: #333;
+  color: #00ff88;
+  border: 1px solid #00ff88;
+  border-radius: 12px;
+}
+
+#boostBtn {
+    height: 80px;
+    width: 80px;
+    border-radius: 50%;
+    background-color: #550000;
+    color: #ff8888;
+    border: 2px solid #ff4444;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 12px;
+}
+
+#boostBtn:active {
+    background-color: #ff4444;
+    color: white;
+}
+
+.mobile-controls-container button.d-pad:active {
+  background-color: #00ff88;
+  color: #1f1f1f;
+}
+
+/* --- Nuevos Estilos Misceláneos --- */
+.top-bar {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    z-index: 20;
+}
+
+.icon-button {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid #555;
+    color: #aaa;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-size: 20px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Animación de muerte */
+@keyframes flash-red {
+    from { filter: none; }
+    to { filter: brightness(1.75) drop-shadow(0 0 5px #ff4444); }
+}
+
+.snake-hit {
+    animation: flash-red 0.1s 4 alternate;
 }
 
 /* --- ESTILOS PARA TELÉFONOS Y PANTALLAS PEQUEÑAS --- */
@@ -244,34 +329,5 @@ button:active {
   }
   .mobile-controls-container {
     display: flex;
-    justify-content: center;
-    margin-top: 20px;
-    padding: 10px;
-  }
-  #mobileControls {
-    display: grid;
-    grid-template-columns: repeat(3, 65px);
-    grid-template-rows: repeat(3, 65px);
-    gap: 12px;
-    justify-content: center;
-  }
-  #upBtn    { grid-area: 1 / 2 / 2 / 3; }
-  #leftBtn  { grid-area: 2 / 1 / 3 / 2; }
-  #rightBtn { grid-area: 2 / 3 / 3 / 4; }
-  #downBtn  { grid-area: 3 / 2 / 4 / 3; }
-  .mobile-controls-container button {
-    width: 100%;
-    height: 100%;
-    font-size: 24px;
-    margin: 0;
-    background-color: #333;
-    color: #00ff88;
-    border: 1px solid #00ff88;
-    border-radius: 12px;
-  }
-  .mobile-controls-container button:active {
-    background-color: #00ff88;
-    color: #1f1f1f;
-    transform: scale(0.95);
   }
 }
