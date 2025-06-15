@@ -39,6 +39,8 @@ const scoreDisplay = document.getElementById('scoreDisplay');
 const timeDisplay = document.getElementById('timeDisplay');
 const playCounterDisplay = document.getElementById('playCounterDisplay');
 const leaderboardList = document.getElementById('leaderboardList');
+const leaderboardContainer = document.getElementById('leaderboard');
+const donationContainer = document.querySelector('.donation-container');
 
 const gameOverScreen = document.getElementById('gameOverScreen');
 const finalScoreDisplay = document.getElementById('finalScore');
@@ -87,7 +89,8 @@ function signOut() {
 // --- Funciones de Flujo del Juego ---
 function showLobby() {
     gameOverScreen.classList.remove('visible');
-    // Forzar una actualización del estado de login al volver al lobby
+    startBtn.disabled = false;
+    logoutBtn.disabled = false;
     auth.onAuthStateChanged(auth.currentUser);
     renderLeaderboard();
 }
@@ -195,6 +198,9 @@ function move() {
 
 // --- Controles ---
 function handleDirectionChange(newDx, newDy) {
+    // DETECTIVE #3
+    console.log(`DETECTIVE #3: handleDirectionChange llamado con dx=${newDx}, dy=${newDy}. Dirección actual: dx=${dx}, dy=${dy}`);
+
     if (!gameInterval) return;
     
     const goingUp = dy === -1;
@@ -203,10 +209,10 @@ function handleDirectionChange(newDx, newDy) {
     const goingLeft = dx === -1;
 
     // Prevenir que la serpiente se invierta
-    if (newDy === 1 && goingUp) return;
-    if (newDy === -1 && goingDown) return;
-    if (newDx === 1 && goingLeft) return;
-    if (newDx === -1 && goingRight) return;
+    if (goingUp && newDy === 1) return;
+    if (goingDown && newDy === -1) return;
+    if (goingLeft && newDx === 1) return;
+    if (goingRight && newDx === -1) return;
 
     dx = newDx;
     dy = newDy;
@@ -229,6 +235,9 @@ canvas.addEventListener('touchstart', (e) => {
 
 canvas.addEventListener('touchend', (e) => {
     e.preventDefault();
+    // DETECTIVE #1
+    console.log("DETECTIVE #1: Evento 'touchend' (fin de toque) detectado.");
+    
     const touchEndX = e.changedTouches[0].screenX;
     const touchEndY = e.changedTouches[0].screenY;
     handleSwipe(touchEndX, touchEndY);
@@ -238,6 +247,9 @@ function handleSwipe(endX, endY) {
     const diffX = endX - touchStartX;
     const diffY = endY - touchStartY;
     const threshold = 30;
+
+    // DETECTIVE #2
+    console.log(`DETECTIVE #2: Swipe calculado. Diferencia en X: ${diffX}, Diferencia en Y: ${diffY}`);
 
     if (Math.abs(diffX) > Math.abs(diffY)) {
         if (Math.abs(diffX) > threshold) {
@@ -249,6 +261,7 @@ function handleSwipe(endX, endY) {
         }
     }
 }
+
 
 // --- Lógica Central de Fin de Partida ---
 async function processEndOfGame() {
@@ -316,8 +329,6 @@ async function getLeaderboard(region = 'global') {
 
 async function addScoreToLeaderboard(uid, name, photoURL, newScore, country, countryCode, time, email) {
     const playerData = { name, photoURL, score: newScore, country, countryCode, time, email };
-    const playerRef = db.collection('leaderboard').doc(uid); // Mantenemos la tabla antigua por compatibilidad
-    const globalPlayerRef = db.collection('leaderboards').doc('global').collection('scores').doc(uid);
     
     const updateLogic = async (ref) => {
         const doc = await ref.get();
@@ -325,8 +336,10 @@ async function addScoreToLeaderboard(uid, name, photoURL, newScore, country, cou
             await ref.set(playerData);
         }
     };
-
+    
+    const globalPlayerRef = db.collection('leaderboards').doc('global').collection('scores').doc(uid);
     await updateLogic(globalPlayerRef);
+
     if (countryCode && countryCode !== 'N/A') {
         const regionalPlayerRef = db.collection('leaderboards').doc(countryCode.toLowerCase()).collection('scores').doc(uid);
         await updateLogic(regionalPlayerRef);
@@ -351,10 +364,12 @@ function renderLeaderboard(board) {
     }
     board.forEach(entry => {
         const li = document.createElement('li');
+        
         const playerImg = document.createElement('img');
         playerImg.className = 'leaderboard-avatar';
         playerImg.src = entry.photoURL || 'https://i.imgur.com/sC5gU4e.png';
         li.appendChild(playerImg);
+
         if (entry.countryCode && entry.countryCode !== 'N/A' && entry.countryCode.length === 2) {
             const flagImg = document.createElement('img');
             flagImg.className = 'leaderboard-flag';
@@ -366,9 +381,11 @@ function renderLeaderboard(board) {
             const fallbackEmoji = document.createTextNode('🌐');
             li.appendChild(fallbackEmoji);
         }
+        
         const timeDisplay = entry.time ? ` (${formatTime(entry.time)})` : '';
         const textNode = document.createTextNode(` ${entry.name} - ${entry.score}${timeDisplay}`);
         li.appendChild(textNode);
+        
         leaderboardList.appendChild(li);
     });
 }
@@ -423,6 +440,7 @@ function toggleMute() {
     muteBtn.textContent = isMuted ? '🔇' : '🔊';
     localStorage.setItem('gameMuted', isMuted.toString());
 }
+
 function shareToTwitter() {
     const finalScore = finalScoreDisplay.textContent;
     const gameUrl = "https://franbucho.github.io/ProfileMiniGame/";
@@ -430,6 +448,7 @@ function shareToTwitter() {
     const twitterUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(gameUrl)}&text=${encodeURIComponent(text)}`;
     window.open(twitterUrl, '_blank');
 }
+
 function shareToWhatsApp() {
     const finalScore = finalScoreDisplay.textContent;
     const gameUrl = "https://franbucho.github.io/ProfileMiniGame/";
