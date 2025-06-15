@@ -32,12 +32,17 @@ const logoutBtn = document.getElementById('logoutBtn');
 const userAvatar = document.getElementById('userAvatar');
 const userName = document.getElementById('userName');
 
+const setupScreen = document.getElementById('setupScreen');
+const gameScreen = document.getElementById('gameScreen');
 const startBtn = document.getElementById('startBtn');
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const scoreDisplay = document.getElementById('scoreDisplay');
+const timeDisplay = document.getElementById('timeDisplay');
 const playCounterDisplay = document.getElementById('playCounterDisplay');
 const leaderboardList = document.getElementById('leaderboardList');
+const leaderboardContainer = document.getElementById('leaderboard');
+const donationContainer = document.querySelector('.donation-container');
 
 const gameOverScreen = document.getElementById('gameOverScreen');
 const finalScoreDisplay = document.getElementById('finalScore');
@@ -45,34 +50,30 @@ const playAgainBtn = document.getElementById('playAgainBtn');
 const lobbyBtn = document.getElementById('lobbyBtn');
 const muteBtn = document.getElementById('muteBtn');
 
-const upBtn = document.getElementById('upBtn');
-const downBtn = document.getElementById('downBtn');
-const leftBtn = document.getElementById('leftBtn');
-const rightBtn = document.getElementById('rightBtn');
-const boostBtn = document.getElementById('boostBtn');
 const twitterShareBtn = document.getElementById('twitterShareBtn');
 const whatsappShareBtn = document.getElementById('whatsappShareBtn');
 
 // --- Variables del Juego ---
-let snake, food, dx, dy, score, gameInterval;
+let snake, food, dx, dy, score, gameInterval, gameTimerInterval, elapsedTimeInSeconds;
 let gridSize = 30;
-const NORMAL_SPEED = 120;
-const BOOST_SPEED = 50;
-let currentSpeed = NORMAL_SPEED;
+const GAME_SPEED = 120;
 let isMuted = false;
+let touchStartX = 0;
+let touchStartY = 0;
 
 // --- Lógica de Autenticación ---
 auth.onAuthStateChanged(user => {
-    if (user) {
-        // Usuario está logueado
+    const isGameActive = !!gameInterval;
+    if (user && !isGameActive) {
         loginScreen.style.display = 'none';
-        userProfile.style.display = 'block';
+        userProfile.style.display = 'flex';
         userName.textContent = user.displayName;
         userAvatar.src = user.photoURL;
-    } else {
-        // Usuario no está logueado
+        startBtn.disabled = false;
+    } else if (!user) {
         userProfile.style.display = 'none';
         loginScreen.style.display = 'block';
+        startBtn.disabled = true;
     }
 });
 
@@ -88,37 +89,60 @@ function signOut() {
 }
 
 // --- Funciones de Flujo del Juego ---
+function showLobby() {
+    gameOverScreen.classList.remove('visible');
+    gameScreen.style.display = 'none';
+    setupScreen.style.display = 'block';
+    userProfile.style.display = 'flex';
+    leaderboardContainer.style.display = 'block';
+    donationContainer.style.display = 'block';
+    renderLeaderboard();
+}
+
 function startGame() {
     if (!auth.currentUser) {
         alert("You must be signed in to play.");
         return;
     }
     
-    startBtn.disabled = true;
-    logoutBtn.disabled = true;
+    setupScreen.style.display = 'none';
+    leaderboardContainer.style.display = 'none';
+    donationContainer.style.display = 'none';
+    gameScreen.style.display = 'block';
+
+    if (!isMuted && backgroundMusic.paused) {
+        backgroundMusic.play().catch(e => console.error("Audio autoplay was blocked.", e));
+    }
+    
     runGame();
 }
 
 function runGame() {
   if (gameInterval) clearInterval(gameInterval);
-  currentSpeed = NORMAL_SPEED;
-  gameOverScreen.classList.remove('visible');
+  if (gameTimerInterval) clearInterval(gameTimerInterval);
+  
+  elapsedTimeInSeconds = 0;
+  updateTimerDisplay();
+  gameTimerInterval = setInterval(() => {
+    elapsedTimeInSeconds++;
+    updateTimerDisplay();
+  }, 1000);
+
   updatePlayCount();
   resetGame();
   draw();
-  gameInterval = setInterval(() => { move(); draw(); }, currentSpeed);
+  gameInterval = setInterval(() => { move(); draw(); }, GAME_SPEED);
 }
 
 function initiateGameOverSequence() {
     if (!gameInterval) return;
     gameOverSound.play();
     clearInterval(gameInterval);
+    clearInterval(gameTimerInterval);
     gameInterval = null;
     canvas.classList.add('snake-hit');
     setTimeout(() => {
         canvas.classList.remove('snake-hit');
-        startBtn.disabled = false;
-        logoutBtn.disabled = false;
         processEndOfGame();
         finalScoreDisplay.textContent = score;
         gameOverScreen.classList.add('visible');
@@ -177,18 +201,10 @@ function move() {
 // --- Controles ---
 function handleDirectionChange(newDx, newDy) {
     if (!gameInterval) return;
-    // Lógica corregida: solo permite giros de 90 grados.
     if (dx !== 0 && newDx !== 0) return;
     if (dy !== 0 && newDy !== 0) return;
     dx = newDx;
     dy = newDy;
-}
-
-function setSpeed(speed) {
-    if (!gameInterval || currentSpeed === speed) return;
-    currentSpeed = speed;
-    clearInterval(gameInterval);
-    gameInterval = setInterval(() => { move(); draw(); }, currentSpeed);
 }
 
 document.addEventListener('keydown', e => {
@@ -200,16 +216,34 @@ document.addEventListener('keydown', e => {
   }
 });
 
-upBtn.addEventListener('touchstart', (e) => { e.preventDefault(); handleDirectionChange(0, -1); });
-downBtn.addEventListener('touchstart', (e) => { e.preventDefault(); handleDirectionChange(0, 1); });
-leftBtn.addEventListener('touchstart', (e) => { e.preventDefault(); handleDirectionChange(-1, 0); });
-rightBtn.addEventListener('touchstart', (e) => { e.preventDefault(); handleDirectionChange(1, 0); });
+canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    touchStartX = e.changedTouches[0].screenX;
+    touchStartY = e.changedTouches[0].screenY;
+}, { passive: false });
 
-boostBtn.addEventListener('mousedown', () => setSpeed(BOOST_SPEED));
-boostBtn.addEventListener('mouseup', () => setSpeed(NORMAL_SPEED));
-boostBtn.addEventListener('mouseleave', () => setSpeed(NORMAL_SPEED));
-boostBtn.addEventListener('touchstart', (e) => { e.preventDefault(); setSpeed(BOOST_SPEED); });
-boostBtn.addEventListener('touchend', () => setSpeed(NORMAL_SPEED));
+canvas.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    const touchEndX = e.changedTouches[0].screenX;
+    const touchEndY = e.changedTouches[0].screenY;
+    handleSwipe(touchEndX, touchEndY);
+}, { passive: false });
+
+function handleSwipe(endX, endY) {
+    const diffX = endX - touchStartX;
+    const diffY = endY - touchStartY;
+    const threshold = 30; // Mínimo de píxeles para ser un swipe
+
+    if (Math.abs(diffX) > Math.abs(diffY)) { // Swipe horizontal
+        if (Math.abs(diffX) > threshold) {
+            handleDirectionChange(diffX > 0 ? 1 : -1, 0);
+        }
+    } else { // Swipe vertical
+        if (Math.abs(diffY) > threshold) {
+            handleDirectionChange(0, diffY > 0 ? -1 : 1); // El eje Y está invertido en las coordenadas de pantalla
+        }
+    }
+}
 
 // --- Lógica Central de Fin de Partida ---
 async function processEndOfGame() {
@@ -217,6 +251,8 @@ async function processEndOfGame() {
     if (!user) return;
     const { displayName: name, uid, photoURL } = user;
     const currentScore = score;
+    const time = elapsedTimeInSeconds;
+    
     let locationData;
     try {
         const response = await fetch('https://ipapi.co/json/');
@@ -227,12 +263,15 @@ async function processEndOfGame() {
     }
     const country = locationData.country_name;
     const countryCode = locationData.country_code;
+
     const boardBeforeUpdate = await getLeaderboard();
     const seenCountriesDoc = await db.collection('gameStats').doc('seenCountries').get();
     const seenCountries = seenCountriesDoc.exists ? seenCountriesDoc.data().list : [];
-    await addScoreToLeaderboard(uid, name, photoURL, currentScore, country, countryCode);
+
+    await addScoreToLeaderboard(uid, name, photoURL, currentScore, country, countryCode, time);
     const updatedBoard = await getLeaderboard();
     renderLeaderboard(updatedBoard);
+
     sendSmartNotification(name, currentScore, country, boardBeforeUpdate, updatedBoard, seenCountries, locationData);
 }
 
@@ -259,7 +298,7 @@ async function updatePlayCount(isInitialLoad = false) {
 }
 
 async function getLeaderboard() {
-    const leaderboardRef = db.collection('leaderboard').orderBy('score', 'desc').limit(100);
+    const leaderboardRef = db.collection('leaderboard').orderBy('score', 'desc').orderBy('time', 'asc').limit(100);
     const snapshot = await leaderboardRef.get();
     const board = [];
     snapshot.forEach(doc => {
@@ -268,17 +307,27 @@ async function getLeaderboard() {
     return board;
 }
 
-async function addScoreToLeaderboard(uid, name, photoURL, newScore, country, countryCode) {
+async function addScoreToLeaderboard(uid, name, photoURL, newScore, country, countryCode, time) {
     const playerRef = db.collection('leaderboard').doc(uid);
     const doc = await playerRef.get();
-    const playerData = { name, photoURL, score: newScore, country, countryCode, uid };
+    const playerData = { name, photoURL, score: newScore, country, countryCode, time };
     if (doc.exists) {
-        if (newScore >= doc.data().score) {
+        if (newScore > doc.data().score || (newScore === doc.data().score && time < doc.data().time)) {
             await playerRef.update(playerData);
         }
     } else {
         await playerRef.set(playerData);
     }
+}
+
+function formatTime(seconds) {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+}
+
+function updateTimerDisplay() {
+    timeDisplay.textContent = `Time: ${formatTime(elapsedTimeInSeconds)}`;
 }
 
 function renderLeaderboard(board) {
@@ -289,10 +338,12 @@ function renderLeaderboard(board) {
     }
     board.forEach(entry => {
         const li = document.createElement('li');
+        
         const playerImg = document.createElement('img');
         playerImg.className = 'leaderboard-avatar';
         playerImg.src = entry.photoURL || 'https://i.imgur.com/sC5gU4e.png';
         li.appendChild(playerImg);
+
         if (entry.countryCode && entry.countryCode !== 'N/A' && entry.countryCode.length === 2) {
             const flagImg = document.createElement('img');
             flagImg.className = 'leaderboard-flag';
@@ -304,8 +355,11 @@ function renderLeaderboard(board) {
             const fallbackEmoji = document.createTextNode('🌐');
             li.appendChild(fallbackEmoji);
         }
-        const textNode = document.createTextNode(` ${entry.name} - ${entry.score}`);
+        
+        const timeDisplay = entry.time ? ` (${formatTime(entry.time)})` : '';
+        const textNode = document.createTextNode(` ${entry.name} - ${entry.score}${timeDisplay}`);
         li.appendChild(textNode);
+        
         leaderboardList.appendChild(li);
     });
 }
@@ -396,9 +450,7 @@ loginBtn.addEventListener('click', signInWithGoogle);
 logoutBtn.addEventListener('click', signOut);
 startBtn.addEventListener('click', startGame);
 playAgainBtn.addEventListener('click', runGame);
-lobbyBtn.addEventListener('click', () => {
-    gameOverScreen.classList.remove('visible');
-});
+lobbyBtn.addEventListener('click', showLobby);
 muteBtn.addEventListener('click', toggleMute);
 twitterShareBtn.addEventListener('click', shareToTwitter);
 whatsappShareBtn.addEventListener('click', shareToWhatsApp);
