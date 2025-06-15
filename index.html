@@ -50,7 +50,13 @@
             <canvas id="gameCanvas" width="400" height="400"></canvas>
         </div>
         <div id="leaderboard" class="info-column">
-          <h2>🏆 Global Top 100</h2>
+          <div class="leaderboard-header">
+            <h2>🏆 Leaderboard</h2>
+            <div class="leaderboard-toggles">
+              <button id="globalBtn" class="toggle-btn active">Global</button>
+              <button id="regionalBtn" class="toggle-btn">My Region</button>
+            </div>
+          </div>
           <ol id="leaderboardList"><li>Loading...</li></ol>
         </div>
     </div>
