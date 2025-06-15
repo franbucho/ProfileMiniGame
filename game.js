@@ -83,6 +83,7 @@ function signOut() {
     auth.signOut();
 }
 
+
 // --- Funciones de Flujo del Juego ---
 function startGame() {
     if (!auth.currentUser) {
@@ -223,10 +224,11 @@ function handleSwipe(endX, endY) {
         }
     } else {
         if (Math.abs(diffY) > threshold) {
-            handleDirectionChange(0, diffY > 0 ? -1 : 1);
+            handleDirectionChange(0, diffY > 0 ? 1 : -1);
         }
     }
 }
+
 
 // --- Lógica Central de Fin de Partida ---
 async function processEndOfGame() {
@@ -235,6 +237,7 @@ async function processEndOfGame() {
     const { displayName: name, uid, photoURL } = user;
     const currentScore = score;
     const time = elapsedTimeInSeconds;
+    
     let locationData;
     try {
         const response = await fetch('https://ipapi.co/json/');
@@ -245,12 +248,15 @@ async function processEndOfGame() {
     }
     const country = locationData.country_name;
     const countryCode = locationData.country_code;
+
     const boardBeforeUpdate = await getLeaderboard();
     const seenCountriesDoc = await db.collection('gameStats').doc('seenCountries').get();
     const seenCountries = seenCountriesDoc.exists ? seenCountriesDoc.data().list : [];
+
     await addScoreToLeaderboard(uid, name, photoURL, currentScore, country, countryCode, time);
     const updatedBoard = await getLeaderboard();
     renderLeaderboard(updatedBoard);
+
     sendSmartNotification(name, currentScore, country, boardBeforeUpdate, updatedBoard, seenCountries, locationData);
 }
 
@@ -317,10 +323,12 @@ function renderLeaderboard(board) {
     }
     board.forEach(entry => {
         const li = document.createElement('li');
+        
         const playerImg = document.createElement('img');
         playerImg.className = 'leaderboard-avatar';
         playerImg.src = entry.photoURL || 'https://i.imgur.com/sC5gU4e.png';
         li.appendChild(playerImg);
+
         if (entry.countryCode && entry.countryCode !== 'N/A' && entry.countryCode.length === 2) {
             const flagImg = document.createElement('img');
             flagImg.className = 'leaderboard-flag';
@@ -332,9 +340,11 @@ function renderLeaderboard(board) {
             const fallbackEmoji = document.createTextNode('🌐');
             li.appendChild(fallbackEmoji);
         }
+        
         const timeDisplay = entry.time ? ` (${formatTime(entry.time)})` : '';
         const textNode = document.createTextNode(` ${entry.name} - ${entry.score}${timeDisplay}`);
         li.appendChild(textNode);
+        
         leaderboardList.appendChild(li);
     });
 }
@@ -389,6 +399,7 @@ function toggleMute() {
     muteBtn.textContent = isMuted ? '🔇' : '🔊';
     localStorage.setItem('gameMuted', isMuted.toString());
 }
+
 function shareToTwitter() {
     const finalScore = finalScoreDisplay.textContent;
     const gameUrl = "https://franbucho.github.io/ProfileMiniGame/";
@@ -396,6 +407,7 @@ function shareToTwitter() {
     const twitterUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(gameUrl)}&text=${encodeURIComponent(text)}`;
     window.open(twitterUrl, '_blank');
 }
+
 function shareToWhatsApp() {
     const finalScore = finalScoreDisplay.textContent;
     const gameUrl = "https://franbucho.github.io/ProfileMiniGame/";
@@ -403,7 +415,6 @@ function shareToWhatsApp() {
     const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
     window.open(whatsappUrl, '_blank');
 }
-
 
 // --- INICIALIZACIÓN ---
 async function initialLoad() {
@@ -417,8 +428,8 @@ async function initialLoad() {
         const board = await getLeaderboard();
         renderLeaderboard(board);
     } catch(e) {
-        console.error("Could not load leaderboard, you might need to create a composite index in Firebase.", e);
-        leaderboardList.innerHTML = '<li>Error loading scores. Check browser console (F12) for a link to create a Firebase index.</li>';
+        console.error("Could not load leaderboard. You might need to create a composite index in Firebase. Look for a link in the error message below to create it automatically.", e);
+        leaderboardList.innerHTML = '<li>Error: Could not load scores. A database index might be required.</li>';
     }
     updatePlayCount(true);
 }
@@ -428,7 +439,9 @@ loginBtn.addEventListener('click', signInWithGoogle);
 logoutBtn.addEventListener('click', signOut);
 startBtn.addEventListener('click', startGame);
 playAgainBtn.addEventListener('click', runGame);
-lobbyBtn.addEventListener('click', showLobby);
+lobbyBtn.addEventListener('click', () => {
+    gameOverScreen.classList.remove('visible');
+});
 muteBtn.addEventListener('click', toggleMute);
 twitterShareBtn.addEventListener('click', shareToTwitter);
 whatsappShareBtn.addEventListener('click', shareToWhatsApp);
