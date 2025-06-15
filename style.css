@@ -189,7 +189,7 @@ button:disabled {
   background-color: #0d0d0d;
   padding: 15px 25px;
   border-radius: 8px;
-  height: 505px; /* Altura fija para alinear */
+  height: 505px;
   overflow-y: auto;
   box-sizing: border-box;
 }
@@ -362,7 +362,6 @@ button:disabled {
 @media (max-width: 920px) {
   .container {
     max-width: 500px;
-    padding: 20px;
   }
   .main-content {
     flex-direction: column;
