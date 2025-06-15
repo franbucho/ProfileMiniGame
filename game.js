@@ -32,8 +32,6 @@ const logoutBtn = document.getElementById('logoutBtn');
 const userAvatar = document.getElementById('userAvatar');
 const userName = document.getElementById('userName');
 
-const setupScreen = document.getElementById('setupScreen');
-const gameScreen = document.getElementById('gameScreen');
 const startBtn = document.getElementById('startBtn');
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -41,8 +39,6 @@ const scoreDisplay = document.getElementById('scoreDisplay');
 const timeDisplay = document.getElementById('timeDisplay');
 const playCounterDisplay = document.getElementById('playCounterDisplay');
 const leaderboardList = document.getElementById('leaderboardList');
-const leaderboardContainer = document.getElementById('leaderboard');
-const donationContainer = document.querySelector('.donation-container');
 
 const gameOverScreen = document.getElementById('gameOverScreen');
 const finalScoreDisplay = document.getElementById('finalScore');
@@ -58,15 +54,14 @@ let snake, food, dx, dy, score, gameInterval, gameTimerInterval, elapsedTimeInSe
 let gridSize = 30;
 const GAME_SPEED = 120;
 let isMuted = false;
-let touchStartX = 0;
-let touchStartY = 0;
+let touchStartX = 0, touchStartY = 0;
 
 // --- Lógica de Autenticación ---
 auth.onAuthStateChanged(user => {
     const isGameActive = !!gameInterval;
     if (user && !isGameActive) {
         loginScreen.style.display = 'none';
-        userProfile.style.display = 'flex';
+        userProfile.style.display = 'block';
         userName.textContent = user.displayName;
         userAvatar.src = user.photoURL;
         startBtn.disabled = false;
@@ -89,37 +84,22 @@ function signOut() {
 }
 
 // --- Funciones de Flujo del Juego ---
-function showLobby() {
-    gameOverScreen.classList.remove('visible');
-    gameScreen.style.display = 'none';
-    setupScreen.style.display = 'block';
-    userProfile.style.display = 'flex';
-    leaderboardContainer.style.display = 'block';
-    donationContainer.style.display = 'block';
-    renderLeaderboard();
-}
-
 function startGame() {
     if (!auth.currentUser) {
         alert("You must be signed in to play.");
         return;
     }
     
-    setupScreen.style.display = 'none';
-    leaderboardContainer.style.display = 'none';
-    donationContainer.style.display = 'none';
-    gameScreen.style.display = 'block';
-
-    if (!isMuted && backgroundMusic.paused) {
-        backgroundMusic.play().catch(e => console.error("Audio autoplay was blocked.", e));
-    }
-    
+    startBtn.disabled = true;
+    logoutBtn.disabled = true;
     runGame();
 }
 
 function runGame() {
   if (gameInterval) clearInterval(gameInterval);
   if (gameTimerInterval) clearInterval(gameTimerInterval);
+  
+  gameOverScreen.classList.remove('visible');
   
   elapsedTimeInSeconds = 0;
   updateTimerDisplay();
@@ -143,6 +123,8 @@ function initiateGameOverSequence() {
     canvas.classList.add('snake-hit');
     setTimeout(() => {
         canvas.classList.remove('snake-hit');
+        startBtn.disabled = false;
+        logoutBtn.disabled = false;
         processEndOfGame();
         finalScoreDisplay.textContent = score;
         gameOverScreen.classList.add('visible');
@@ -201,6 +183,7 @@ function move() {
 // --- Controles ---
 function handleDirectionChange(newDx, newDy) {
     if (!gameInterval) return;
+    // Lógica corregida: solo permite giros de 90 grados.
     if (dx !== 0 && newDx !== 0) return;
     if (dy !== 0 && newDy !== 0) return;
     dx = newDx;
@@ -232,15 +215,15 @@ canvas.addEventListener('touchend', (e) => {
 function handleSwipe(endX, endY) {
     const diffX = endX - touchStartX;
     const diffY = endY - touchStartY;
-    const threshold = 30; // Mínimo de píxeles para ser un swipe
+    const threshold = 30;
 
-    if (Math.abs(diffX) > Math.abs(diffY)) { // Swipe horizontal
+    if (Math.abs(diffX) > Math.abs(diffY)) {
         if (Math.abs(diffX) > threshold) {
             handleDirectionChange(diffX > 0 ? 1 : -1, 0);
         }
-    } else { // Swipe vertical
+    } else {
         if (Math.abs(diffY) > threshold) {
-            handleDirectionChange(0, diffY > 0 ? -1 : 1); // El eje Y está invertido en las coordenadas de pantalla
+            handleDirectionChange(0, diffY > 0 ? -1 : 1);
         }
     }
 }
@@ -252,7 +235,6 @@ async function processEndOfGame() {
     const { displayName: name, uid, photoURL } = user;
     const currentScore = score;
     const time = elapsedTimeInSeconds;
-    
     let locationData;
     try {
         const response = await fetch('https://ipapi.co/json/');
@@ -263,15 +245,12 @@ async function processEndOfGame() {
     }
     const country = locationData.country_name;
     const countryCode = locationData.country_code;
-
     const boardBeforeUpdate = await getLeaderboard();
     const seenCountriesDoc = await db.collection('gameStats').doc('seenCountries').get();
     const seenCountries = seenCountriesDoc.exists ? seenCountriesDoc.data().list : [];
-
     await addScoreToLeaderboard(uid, name, photoURL, currentScore, country, countryCode, time);
     const updatedBoard = await getLeaderboard();
     renderLeaderboard(updatedBoard);
-
     sendSmartNotification(name, currentScore, country, boardBeforeUpdate, updatedBoard, seenCountries, locationData);
 }
 
@@ -338,12 +317,10 @@ function renderLeaderboard(board) {
     }
     board.forEach(entry => {
         const li = document.createElement('li');
-        
         const playerImg = document.createElement('img');
         playerImg.className = 'leaderboard-avatar';
         playerImg.src = entry.photoURL || 'https://i.imgur.com/sC5gU4e.png';
         li.appendChild(playerImg);
-
         if (entry.countryCode && entry.countryCode !== 'N/A' && entry.countryCode.length === 2) {
             const flagImg = document.createElement('img');
             flagImg.className = 'leaderboard-flag';
@@ -355,11 +332,9 @@ function renderLeaderboard(board) {
             const fallbackEmoji = document.createTextNode('🌐');
             li.appendChild(fallbackEmoji);
         }
-        
         const timeDisplay = entry.time ? ` (${formatTime(entry.time)})` : '';
         const textNode = document.createTextNode(` ${entry.name} - ${entry.score}${timeDisplay}`);
         li.appendChild(textNode);
-        
         leaderboardList.appendChild(li);
     });
 }
@@ -414,7 +389,6 @@ function toggleMute() {
     muteBtn.textContent = isMuted ? '🔇' : '🔊';
     localStorage.setItem('gameMuted', isMuted.toString());
 }
-
 function shareToTwitter() {
     const finalScore = finalScoreDisplay.textContent;
     const gameUrl = "https://franbucho.github.io/ProfileMiniGame/";
@@ -422,7 +396,6 @@ function shareToTwitter() {
     const twitterUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(gameUrl)}&text=${encodeURIComponent(text)}`;
     window.open(twitterUrl, '_blank');
 }
-
 function shareToWhatsApp() {
     const finalScore = finalScoreDisplay.textContent;
     const gameUrl = "https://franbucho.github.io/ProfileMiniGame/";
@@ -440,8 +413,13 @@ async function initialLoad() {
         backgroundMusic.muted = true;
         muteBtn.textContent = '🔇';
     }
-    const board = await getLeaderboard();
-    renderLeaderboard(board);
+    try {
+        const board = await getLeaderboard();
+        renderLeaderboard(board);
+    } catch(e) {
+        console.error("Could not load leaderboard, you might need to create a composite index in Firebase.", e);
+        leaderboardList.innerHTML = '<li>Error loading scores. Check browser console (F12) for a link to create a Firebase index.</li>';
+    }
     updatePlayCount(true);
 }
 
