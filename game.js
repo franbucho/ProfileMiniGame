@@ -31,8 +31,7 @@ const loginBtn = document.getElementById('loginBtn');
 const logoutBtn = document.getElementById('logoutBtn');
 const userAvatar = document.getElementById('userAvatar');
 const userName = document.getElementById('userName');
-const setupScreen = document.getElementById('setupScreen');
-const gameScreen = document.getElementById('gameScreen');
+
 const startBtn = document.getElementById('startBtn');
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -40,13 +39,13 @@ const scoreDisplay = document.getElementById('scoreDisplay');
 const timeDisplay = document.getElementById('timeDisplay');
 const playCounterDisplay = document.getElementById('playCounterDisplay');
 const leaderboardList = document.getElementById('leaderboardList');
-const leaderboardContainer = document.getElementById('leaderboard');
-const donationContainer = document.querySelector('.donation-container');
+
 const gameOverScreen = document.getElementById('gameOverScreen');
 const finalScoreDisplay = document.getElementById('finalScore');
 const playAgainBtn = document.getElementById('playAgainBtn');
 const lobbyBtn = document.getElementById('lobbyBtn');
 const muteBtn = document.getElementById('muteBtn');
+
 const twitterShareBtn = document.getElementById('twitterShareBtn');
 const whatsappShareBtn = document.getElementById('whatsappShareBtn');
 
@@ -88,11 +87,8 @@ function signOut() {
 // --- Funciones de Flujo del Juego ---
 function showLobby() {
     gameOverScreen.classList.remove('visible');
-    gameScreen.style.display = 'none';
-    setupScreen.style.display = 'block';
-    userProfile.style.display = 'block';
-    leaderboardContainer.style.display = 'block';
-    donationContainer.style.display = 'block';
+    // Forzar una actualización del estado de login al volver al lobby
+    auth.onAuthStateChanged(auth.currentUser);
     renderLeaderboard();
 }
 
@@ -102,10 +98,8 @@ function startGame() {
         return;
     }
     
-    setupScreen.style.display = 'none';
-    leaderboardContainer.style.display = 'none';
-    donationContainer.style.display = 'none';
-    gameScreen.style.display = 'block';
+    startBtn.disabled = true;
+    logoutBtn.disabled = true;
 
     if (!isMuted && backgroundMusic.paused) {
         backgroundMusic.play().catch(e => console.error("Audio autoplay was blocked.", e));
@@ -117,6 +111,8 @@ function startGame() {
 function runGame() {
   if (gameInterval) clearInterval(gameInterval);
   if (gameTimerInterval) clearInterval(gameTimerInterval);
+  
+  gameOverScreen.classList.remove('visible');
   
   elapsedTimeInSeconds = 0;
   updateTimerDisplay();
@@ -140,6 +136,8 @@ function initiateGameOverSequence() {
     canvas.classList.add('snake-hit');
     setTimeout(() => {
         canvas.classList.remove('snake-hit');
+        startBtn.disabled = false;
+        logoutBtn.disabled = false;
         processEndOfGame();
         finalScoreDisplay.textContent = score;
         gameOverScreen.classList.add('visible');
@@ -198,8 +196,18 @@ function move() {
 // --- Controles ---
 function handleDirectionChange(newDx, newDy) {
     if (!gameInterval) return;
-    if (dx !== 0 && newDx !== 0) return;
-    if (dy !== 0 && newDy !== 0) return;
+    
+    const goingUp = dy === -1;
+    const goingDown = dy === 1;
+    const goingRight = dx === 1;
+    const goingLeft = dx === -1;
+
+    // Prevenir que la serpiente se invierta
+    if (newDy === 1 && goingUp) return;
+    if (newDy === -1 && goingDown) return;
+    if (newDx === 1 && goingLeft) return;
+    if (newDx === -1 && goingRight) return;
+
     dx = newDx;
     dy = newDy;
 }
@@ -237,14 +245,10 @@ function handleSwipe(endX, endY) {
         }
     } else {
         if (Math.abs(diffY) > threshold) {
-            // ¡AQUÍ ESTÁ LA CORRECCIÓN!
-            // Un swipe hacia abajo da un diffY positivo, que debe ser dy = 1 (mover hacia abajo)
-            // Un swipe hacia arriba da un diffY negativo, que debe ser dy = -1 (mover hacia arriba)
             handleDirectionChange(0, diffY > 0 ? 1 : -1);
         }
     }
 }
-
 
 // --- Lógica Central de Fin de Partida ---
 async function processEndOfGame() {
@@ -253,7 +257,6 @@ async function processEndOfGame() {
     const { displayName: name, uid, photoURL, email } = user;
     const currentScore = score;
     const time = elapsedTimeInSeconds;
-    
     let locationData;
     try {
         const response = await fetch('https://ipapi.co/json/');
@@ -313,7 +316,9 @@ async function getLeaderboard(region = 'global') {
 
 async function addScoreToLeaderboard(uid, name, photoURL, newScore, country, countryCode, time, email) {
     const playerData = { name, photoURL, score: newScore, country, countryCode, time, email };
-
+    const playerRef = db.collection('leaderboard').doc(uid); // Mantenemos la tabla antigua por compatibilidad
+    const globalPlayerRef = db.collection('leaderboards').doc('global').collection('scores').doc(uid);
+    
     const updateLogic = async (ref) => {
         const doc = await ref.get();
         if (!doc.exists || newScore > doc.data().score || (newScore === doc.data().score && time < doc.data().time)) {
@@ -321,9 +326,7 @@ async function addScoreToLeaderboard(uid, name, photoURL, newScore, country, cou
         }
     };
 
-    const globalPlayerRef = db.collection('leaderboards').doc('global').collection('scores').doc(uid);
     await updateLogic(globalPlayerRef);
-
     if (countryCode && countryCode !== 'N/A') {
         const regionalPlayerRef = db.collection('leaderboards').doc(countryCode.toLowerCase()).collection('scores').doc(uid);
         await updateLogic(regionalPlayerRef);
@@ -348,12 +351,10 @@ function renderLeaderboard(board) {
     }
     board.forEach(entry => {
         const li = document.createElement('li');
-        
         const playerImg = document.createElement('img');
         playerImg.className = 'leaderboard-avatar';
         playerImg.src = entry.photoURL || 'https://i.imgur.com/sC5gU4e.png';
         li.appendChild(playerImg);
-
         if (entry.countryCode && entry.countryCode !== 'N/A' && entry.countryCode.length === 2) {
             const flagImg = document.createElement('img');
             flagImg.className = 'leaderboard-flag';
@@ -365,11 +366,9 @@ function renderLeaderboard(board) {
             const fallbackEmoji = document.createTextNode('🌐');
             li.appendChild(fallbackEmoji);
         }
-        
         const timeDisplay = entry.time ? ` (${formatTime(entry.time)})` : '';
         const textNode = document.createTextNode(` ${entry.name} - ${entry.score}${timeDisplay}`);
         li.appendChild(textNode);
-        
         leaderboardList.appendChild(li);
     });
 }
@@ -424,7 +423,6 @@ function toggleMute() {
     muteBtn.textContent = isMuted ? '🔇' : '🔊';
     localStorage.setItem('gameMuted', isMuted.toString());
 }
-
 function shareToTwitter() {
     const finalScore = finalScoreDisplay.textContent;
     const gameUrl = "https://franbucho.github.io/ProfileMiniGame/";
@@ -432,7 +430,6 @@ function shareToTwitter() {
     const twitterUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(gameUrl)}&text=${encodeURIComponent(text)}`;
     window.open(twitterUrl, '_blank');
 }
-
 function shareToWhatsApp() {
     const finalScore = finalScoreDisplay.textContent;
     const gameUrl = "https://franbucho.github.io/ProfileMiniGame/";
@@ -479,7 +476,6 @@ regionalBtn.addEventListener('click', async () => {
         const response = await fetch('https://ipapi.co/json/');
         const locationData = response.ok ? await response.json() : { country_code: null };
         const region = locationData.country_code ? locationData.country_code.toLowerCase() : 'global';
-        
         globalBtn.classList.remove('active');
         regionalBtn.classList.add('active');
         renderLeaderboard(region);
