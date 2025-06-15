@@ -9,6 +9,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&family=Press+Start+2P&display=swap" rel="stylesheet">
   
+  <link rel="icon" type="image/png" href="favicon.png">
+  
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -20,13 +22,30 @@
     <h1>🐍 Retro Snake Worldwide</h1> 
     
     <div id="auth-container">
-      </div>
+        <div id="loginScreen">
+            <p>Sign in to play and compete!</p>
+            <button id="loginBtn" class="google-btn">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google Logo">
+                Sign in with Google
+            </button>
+        </div>
+        <div id="userProfile" style="display: none;">
+            <div class="profile-info">
+                <img id="userAvatar" src="" alt="User Avatar">
+                <span id="userName"></span>
+            </div>
+            <div class="profile-buttons">
+                <button id="startBtn">Start Game</button>
+                <button id="logoutBtn">Sign Out</button>
+            </div>
+        </div>
+    </div>
     
     <div class="main-content">
         <div class="game-column">
             <div class="game-info">
               <div id="scoreDisplay">Score: 0</div>
-              <div id="timeDisplay">Time: 0s</div>
+              <div id="timeDisplay">Time: 0:00</div>
               <div id="playCounterDisplay">Plays: ...</div>
             </div>
             <canvas id="gameCanvas" width="400" height="400"></canvas>
@@ -38,11 +57,34 @@
     </div>
 
     <div class="donation-container">
-        </div>
+        <a href="https://ko-fi.com/franbucho" target="_blank" rel="noopener noreferrer" class="donation-button">
+            Support the Project ☕
+        </a>
+    </div>
 
     <div id="gameOverScreen" class="overlay-container">
+      <div class="game-over-box">
+        <h2>Game Over</h2>
+        <p>Your Final Score: <span id="finalScore">0</span></p>
+        <div class="game-over-buttons">
+          <button id="playAgainBtn">Play Again</button>
+          <button id="lobbyBtn">Back to Lobby</button>
+        </div>
+        <div class="share-section">
+            <p>Share your score!</p>
+            <div class="share-buttons">
+                <button id="twitterShareBtn" class="share-button twitter">X</button>
+                <button id="whatsappShareBtn" class="share-button whatsapp">WhatsApp</button>
+            </div>
+        </div>
       </div>
+    </div>
   </div>
 
-  </body>
+  <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-auth-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+  <script type="module" src="game.js"></script>
+</body>
 </html>
