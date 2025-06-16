@@ -58,9 +58,10 @@ let gridSize = 30;
 const GAME_SPEED = 120;
 let isMuted = false;
 let touchStartX = 0, touchStartY = 0;
+let currentUserRegion = null;
 
 // --- Lógica de Autenticación ---
-auth.onAuthStateChanged(user => {
+auth.onAuthStateChanged(async (user) => {
     const isGameActive = !!gameInterval;
     if (user && !isGameActive) {
         loginScreen.style.display = 'none';
@@ -68,12 +69,32 @@ auth.onAuthStateChanged(user => {
         userName.textContent = user.displayName;
         userAvatar.src = user.photoURL;
         startBtn.disabled = false;
+        await fetchUserRegion(user.uid);
     } else if (!user) {
         userProfile.style.display = 'none';
         loginScreen.style.display = 'block';
         startBtn.disabled = true;
+        regionalBtn.disabled = true;
+        currentUserRegion = null;
     }
 });
+
+async function fetchUserRegion(uid) {
+    try {
+        const playerDoc = await db.collection('leaderboards').doc('global').collection('scores').doc(uid).get();
+        if (playerDoc.exists && playerDoc.data().countryCode) {
+            currentUserRegion = playerDoc.data().countryCode.toLowerCase();
+            regionalBtn.disabled = false;
+            console.log(`Región de usuario encontrada: ${currentUserRegion}`);
+        } else {
+            regionalBtn.disabled = true;
+            console.log("El usuario no tiene una región guardada todavía.");
+        }
+    } catch (error) {
+        console.error("Error al buscar la región del usuario:", error);
+        regionalBtn.disabled = true;
+    }
+}
 
 function signInWithGoogle() {
     const provider = new firebase.auth.GoogleAuthProvider();
@@ -93,7 +114,7 @@ function showLobby() {
     startBtn.disabled = false;
     logoutBtn.disabled = false;
     auth.onAuthStateChanged(auth.currentUser);
-    renderLeaderboard(globalBtn.classList.contains('active') ? 'global' : localStorage.getItem('userRegion'));
+    renderLeaderboard(globalBtn.classList.contains('active') ? 'global' : currentUserRegion);
 }
 
 function startGame() {
@@ -215,24 +236,13 @@ document.addEventListener('keydown', e => {
   }
 });
 
-canvas.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    touchStartX = e.changedTouches[0].screenX;
-    touchStartY = e.changedTouches[0].screenY;
-}, { passive: false });
-
-canvas.addEventListener('touchend', (e) => {
-    e.preventDefault();
-    const touchEndX = e.changedTouches[0].screenX;
-    const touchEndY = e.changedTouches[0].screenY;
-    handleSwipe(touchEndX, touchEndY);
-}, { passive: false });
+canvas.addEventListener('touchstart', (e) => { e.preventDefault(); touchStartX = e.changedTouches[0].screenX; touchStartY = e.changedTouches[0].screenY; }, { passive: false });
+canvas.addEventListener('touchend', (e) => { e.preventDefault(); const touchEndX = e.changedTouches[0].screenX; const touchEndY = e.changedTouches[0].screenY; handleSwipe(touchEndX, touchEndY); }, { passive: false });
 
 function handleSwipe(endX, endY) {
     const diffX = endX - touchStartX;
     const diffY = endY - touchStartY;
     const threshold = 30;
-
     if (Math.abs(diffX) > Math.abs(diffY)) {
         if (Math.abs(diffX) > threshold) {
             handleDirectionChange(diffX > 0 ? 1 : -1, 0);
@@ -244,7 +254,6 @@ function handleSwipe(endX, endY) {
     }
 }
 
-
 // --- Lógica Central de Fin de Partida ---
 async function processEndOfGame() {
     const user = auth.currentUser;
@@ -252,7 +261,6 @@ async function processEndOfGame() {
     const { displayName: name, uid, photoURL, email } = user;
     const currentScore = score;
     const time = elapsedTimeInSeconds;
-    
     let locationData;
     try {
         const response = await fetch('https://ipapi.co/json/');
@@ -263,19 +271,17 @@ async function processEndOfGame() {
     }
     const country = locationData.country_name;
     const countryCode = locationData.country_code;
-
     if (countryCode && countryCode !== 'N/A') {
-        localStorage.setItem('userRegion', countryCode.toLowerCase());
+        currentUserRegion = countryCode.toLowerCase();
+        localStorage.setItem('userRegion', currentUserRegion);
+        regionalBtn.disabled = false;
     }
-
     const boardBeforeUpdate = await getLeaderboard();
     const seenCountriesDoc = await db.collection('gameStats').doc('seenCountries').get();
     const seenCountries = seenCountriesDoc.exists ? seenCountriesDoc.data().list : [];
-
     await addScoreToLeaderboard(uid, name, photoURL, currentScore, country, countryCode, time, email);
-    const updatedBoard = await getLeaderboard(regionalBtn.classList.contains('active') ? (localStorage.getItem('userRegion') || 'global') : 'global');
+    const updatedBoard = await getLeaderboard(regionalBtn.classList.contains('active') ? (currentUserRegion || 'global') : 'global');
     renderLeaderboard(updatedBoard);
-
     sendSmartNotification(name, currentScore, country, boardBeforeUpdate, updatedBoard, seenCountries, locationData);
 }
 
@@ -313,17 +319,14 @@ async function getLeaderboard(region = 'global') {
 
 async function addScoreToLeaderboard(uid, name, photoURL, newScore, country, countryCode, time, email) {
     const playerData = { name, photoURL, score: newScore, country, countryCode, time, email };
-
     const updateLogic = async (ref) => {
         const doc = await ref.get();
         if (!doc.exists || newScore > doc.data().score || (newScore === doc.data().score && time < doc.data().time)) {
             await ref.set(playerData);
         }
     };
-    
     const globalPlayerRef = db.collection('leaderboards').doc('global').collection('scores').doc(uid);
     await updateLogic(globalPlayerRef);
-
     if (countryCode && countryCode !== 'N/A') {
         const regionalPlayerRef = db.collection('leaderboards').doc(countryCode.toLowerCase()).collection('scores').doc(uid);
         await updateLogic(regionalPlayerRef);
@@ -340,38 +343,41 @@ function updateTimerDisplay() {
     timeDisplay.textContent = `Time: ${formatTime(elapsedTimeInSeconds)}`;
 }
 
-function renderLeaderboard(board) {
-    leaderboardList.innerHTML = '';
-    if (!board || board.length === 0) {
-        leaderboardList.innerHTML = '<li>No scores yet.</li>';
-        return;
-    }
-    board.forEach(entry => {
-        const li = document.createElement('li');
-        
-        const playerImg = document.createElement('img');
-        playerImg.className = 'leaderboard-avatar';
-        playerImg.src = entry.photoURL || 'https://i.imgur.com/sC5gU4e.png';
-        li.appendChild(playerImg);
-
-        if (entry.countryCode && entry.countryCode !== 'N/A' && entry.countryCode.length === 2) {
-            const flagImg = document.createElement('img');
-            flagImg.className = 'leaderboard-flag';
-            flagImg.src = `https://flagcdn.com/w20/${entry.countryCode.toLowerCase()}.png`;
-            flagImg.alt = entry.country;
-            flagImg.title = entry.country;
-            li.appendChild(flagImg);
-        } else {
-            const fallbackEmoji = document.createTextNode('🌐');
-            li.appendChild(fallbackEmoji);
+async function renderLeaderboard(region = 'global') {
+    leaderboardList.innerHTML = '<li>Loading...</li>';
+    try {
+        const board = await getLeaderboard(region);
+        leaderboardList.innerHTML = '';
+        if (board.length === 0) {
+            leaderboardList.innerHTML = '<li>No scores yet.</li>';
+            return;
         }
-        
-        const timeDisplay = entry.time !== undefined ? ` (${formatTime(entry.time)})` : '';
-        const textNode = document.createTextNode(` ${entry.name} - ${entry.score}${timeDisplay}`);
-        li.appendChild(textNode);
-        
-        leaderboardList.appendChild(li);
-    });
+        board.forEach(entry => {
+            const li = document.createElement('li');
+            const playerImg = document.createElement('img');
+            playerImg.className = 'leaderboard-avatar';
+            playerImg.src = entry.photoURL || 'https://i.imgur.com/sC5gU4e.png';
+            li.appendChild(playerImg);
+            if (entry.countryCode && entry.countryCode !== 'N/A' && entry.countryCode.length === 2) {
+                const flagImg = document.createElement('img');
+                flagImg.className = 'leaderboard-flag';
+                flagImg.src = `https://flagcdn.com/w20/${entry.countryCode.toLowerCase()}.png`;
+                flagImg.alt = entry.country;
+                flagImg.title = entry.country;
+                li.appendChild(flagImg);
+            } else {
+                const fallbackEmoji = document.createTextNode('🌐');
+                li.appendChild(fallbackEmoji);
+            }
+            const timeDisplay = entry.time !== undefined ? ` (${formatTime(entry.time)})` : '';
+            const textNode = document.createTextNode(` ${entry.name} - ${entry.score}${timeDisplay}`);
+            li.appendChild(textNode);
+            leaderboardList.appendChild(li);
+        });
+    } catch (e) {
+        console.error("Could not load leaderboard.", e);
+        leaderboardList.innerHTML = '<li>Error: Check console (F12) for details.</li>';
+    }
 }
 
 // --- ENVÍO DE CORREO ---
@@ -424,7 +430,6 @@ function toggleMute() {
     muteBtn.textContent = isMuted ? '🔇' : '🔊';
     localStorage.setItem('gameMuted', isMuted.toString());
 }
-
 function shareToTwitter() {
     const finalScore = finalScoreDisplay.textContent;
     const gameUrl = "https://franbucho.github.io/ProfileMiniGame/";
@@ -432,7 +437,6 @@ function shareToTwitter() {
     const twitterUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(gameUrl)}&text=${encodeURIComponent(text)}`;
     window.open(twitterUrl, '_blank');
 }
-
 function shareToWhatsApp() {
     const finalScore = finalScoreDisplay.textContent;
     const gameUrl = "https://franbucho.github.io/ProfileMiniGame/";
@@ -473,30 +477,18 @@ globalBtn.addEventListener('click', () => {
     globalBtn.classList.add('active');
     renderLeaderboard('global');
 });
-regionalBtn.addEventListener('click', async () => {
-    let region = localStorage.getItem('userRegion');
-    if (!region) {
-        regionalBtn.disabled = true;
-        regionalBtn.textContent = '...';
-        try {
-            const response = await fetch('https://ipapi.co/json/');
-            const locationData = response.ok ? await response.json() : null;
-            if (locationData && locationData.country_code) {
-                region = locationData.country_code.toLowerCase();
-                localStorage.setItem('userRegion', region);
-            }
-        } catch (error) {
-            console.error("Could not get region:", error);
-            alert("Could not determine your region automatically. Play a game to set it.");
-        } finally {
-            regionalBtn.disabled = false;
-            regionalBtn.textContent = 'My Region';
-        }
+regionalBtn.addEventListener('click', () => {
+    if (regionalBtn.disabled) {
+        alert("Play a game to set your region and view the regional leaderboard.");
+        return;
     }
+    const region = localStorage.getItem('userRegion') || currentUserRegion;
     if (region) {
         globalBtn.classList.remove('active');
         regionalBtn.classList.add('active');
         renderLeaderboard(region);
+    } else {
+        alert("Your region is not set yet. Play a game first.");
     }
 });
 
