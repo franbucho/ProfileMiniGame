@@ -31,6 +31,7 @@ const loginBtn = document.getElementById('loginBtn');
 const logoutBtn = document.getElementById('logoutBtn');
 const userAvatar = document.getElementById('userAvatar');
 const userName = document.getElementById('userName');
+
 const startBtn = document.getElementById('startBtn');
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -38,13 +39,16 @@ const scoreDisplay = document.getElementById('scoreDisplay');
 const timeDisplay = document.getElementById('timeDisplay');
 const playCounterDisplay = document.getElementById('playCounterDisplay');
 const leaderboardList = document.getElementById('leaderboardList');
+
 const gameOverScreen = document.getElementById('gameOverScreen');
 const finalScoreDisplay = document.getElementById('finalScore');
 const playAgainBtn = document.getElementById('playAgainBtn');
 const lobbyBtn = document.getElementById('lobbyBtn');
 const muteBtn = document.getElementById('muteBtn');
+
 const twitterShareBtn = document.getElementById('twitterShareBtn');
 const whatsappShareBtn = document.getElementById('whatsappShareBtn');
+
 const globalBtn = document.getElementById('globalBtn');
 const regionalBtn = document.getElementById('regionalBtn');
 
@@ -80,6 +84,7 @@ async function fetchUserRegion(uid) {
         const playerDoc = await db.collection('leaderboards').doc('global').collection('scores').doc(uid).get();
         if (playerDoc.exists && playerDoc.data().countryCode) {
             currentUserRegion = playerDoc.data().countryCode.toLowerCase();
+            localStorage.setItem('userRegion', currentUserRegion);
             regionalBtn.disabled = false;
         } else {
             regionalBtn.disabled = true;
@@ -92,7 +97,9 @@ async function fetchUserRegion(uid) {
 
 function signInWithGoogle() {
     const provider = new firebase.auth.GoogleAuthProvider();
-    auth.signInWithPopup(provider).catch(error => { console.error("Error during sign-in:", error); });
+    auth.signInWithPopup(provider).catch(error => {
+        console.error("Error during sign-in:", error);
+    });
 }
 
 function signOut() {
@@ -105,7 +112,7 @@ function showLobby() {
     startBtn.disabled = false;
     logoutBtn.disabled = false;
     auth.onAuthStateChanged(auth.currentUser);
-    renderLeaderboard();
+    renderLeaderboard(globalBtn.classList.contains('active') ? 'global' : currentUserRegion);
 }
 
 function startGame() {
@@ -113,6 +120,7 @@ function startGame() {
         alert("You must be signed in to play.");
         return;
     }
+    
     startBtn.disabled = true;
     logoutBtn.disabled = true;
     runGame();
@@ -121,9 +129,16 @@ function startGame() {
 function runGame() {
   if (gameInterval) clearInterval(gameInterval);
   if (gameTimerInterval) clearInterval(gameTimerInterval);
+  
   gameOverScreen.classList.remove('visible');
+  
   elapsedTimeInSeconds = 0;
   updateTimerDisplay();
+  gameTimerInterval = setInterval(() => {
+    elapsedTimeInSeconds++;
+    updateTimerDisplay();
+  }, 1000);
+
   updatePlayCount();
   resetGame();
   draw();
@@ -199,10 +214,17 @@ function move() {
 // --- Controles ---
 function handleDirectionChange(newDx, newDy) {
     if (!gameInterval) return;
-    const goingUp = dy === -1, goingDown = dy === 1, goingRight = dx === 1, goingLeft = dx === -1;
-    if ((goingUp && newDy === 1) || (goingDown && newDy === -1) || (goingLeft && newDx === 1) || (goingRight && newDx === -1)) return;
-    dx = newDx; dy = newDy;
+    const goingUp = dy === -1;
+    const goingDown = dy === 1;
+    const goingRight = dx === 1;
+    const goingLeft = dx === -1;
+    if ((goingUp && newDy === 1) || (goingDown && newDy === -1) || (goingLeft && newDx === 1) || (goingRight && newDx === -1)) {
+        return;
+    }
+    dx = newDx;
+    dy = newDy;
 }
+
 document.addEventListener('keydown', e => {
   switch (e.key) {
     case 'ArrowUp': handleDirectionChange(0, -1); break;
@@ -211,23 +233,33 @@ document.addEventListener('keydown', e => {
     case 'ArrowRight': handleDirectionChange(1, 0); break;
   }
 });
+
 canvas.addEventListener('touchstart', (e) => { e.preventDefault(); touchStartX = e.changedTouches[0].screenX; touchStartY = e.changedTouches[0].screenY; }, { passive: false });
 canvas.addEventListener('touchend', (e) => { e.preventDefault(); const touchEndX = e.changedTouches[0].screenX; const touchEndY = e.changedTouches[0].screenY; handleSwipe(touchEndX, touchEndY); }, { passive: false });
+
 function handleSwipe(endX, endY) {
-    const diffX = endX - touchStartX, diffY = endY - touchStartY, threshold = 30;
+    const diffX = endX - touchStartX;
+    const diffY = endY - touchStartY;
+    const threshold = 30;
     if (Math.abs(diffX) > Math.abs(diffY)) {
-        if (Math.abs(diffX) > threshold) handleDirectionChange(diffX > 0 ? 1 : -1, 0);
+        if (Math.abs(diffX) > threshold) {
+            handleDirectionChange(diffX > 0 ? 1 : -1, 0);
+        }
     } else {
-        if (Math.abs(diffY) > threshold) handleDirectionChange(0, diffY > 0 ? 1 : -1);
+        if (Math.abs(diffY) > threshold) {
+            handleDirectionChange(0, diffY > 0 ? 1 : -1);
+        }
     }
 }
+
 
 // --- Lógica Central de Fin de Partida ---
 async function processEndOfGame() {
     const user = auth.currentUser;
     if (!user) return;
     const { displayName: name, uid, photoURL, email } = user;
-    const currentScore = score; const time = elapsedTimeInSeconds;
+    const currentScore = score;
+    const time = elapsedTimeInSeconds;
     let locationData;
     try {
         const response = await fetch('https://ipapi.co/json/');
@@ -236,13 +268,14 @@ async function processEndOfGame() {
         console.warn('IP lookup failed.', error);
         locationData = { country_name: 'N/A', country_code: 'N/A', ip: 'N/A' };
     }
-    const country = locationData.country_name; const countryCode = locationData.country_code;
+    const country = locationData.country_name;
+    const countryCode = locationData.country_code;
     if (countryCode && countryCode !== 'N/A') {
         currentUserRegion = countryCode.toLowerCase();
         localStorage.setItem('userRegion', currentUserRegion);
         regionalBtn.disabled = false;
     }
-    const boardBeforeUpdate = await getLeaderboard();
+    const boardBeforeUpdate = await getLeaderboard('global'); // Siempre comparar contra el global
     const seenCountriesDoc = await db.collection('gameStats').doc('seenCountries').get();
     const seenCountries = seenCountriesDoc.exists ? seenCountriesDoc.data().list : [];
     await addScoreToLeaderboard(uid, name, photoURL, currentScore, country, countryCode, time, email);
@@ -253,54 +286,153 @@ async function processEndOfGame() {
 }
 
 // --- Funciones de Firebase ---
-async function updatePlayCount(isInitialLoad = false) { /* ... sin cambios ... */ }
+async function updatePlayCount(isInitialLoad = false) {
+    const counterRef = db.collection('gameStats').doc('playCounter');
+    try {
+        if (!isInitialLoad) {
+            await counterRef.update({ count: firebase.firestore.FieldValue.increment(1) });
+        }
+        const doc = await counterRef.get();
+        const count = doc.exists ? doc.data().count : 0;
+        playCounterDisplay.textContent = `Plays: ${count.toLocaleString('en-US')}`;
+    } catch (error) {
+        if (error.code === 'not-found') {
+            const startCount = isInitialLoad ? 0 : 1;
+            await counterRef.set({ count: startCount });
+            playCounterDisplay.textContent = `Plays: ${startCount}`;
+        } else {
+            console.error("Error with play counter:", error);
+            playCounterDisplay.textContent = 'Plays: N/A';
+        }
+    }
+}
+
 async function getLeaderboard(region = 'global') {
     const leaderboardRef = db.collection('leaderboards').doc(region).collection('scores').orderBy('score', 'desc').orderBy('time', 'asc').limit(100);
     const snapshot = await leaderboardRef.get();
     const board = [];
-    snapshot.forEach(doc => { board.push({ id: doc.id, ...doc.data() }); });
+    snapshot.forEach(doc => {
+        board.push({ id: doc.id, ...doc.data() });
+    });
     return board;
 }
-async function addScoreToLeaderboard(uid, name, photoURL, newScore, country, countryCode, time, email) { /* ... sin cambios ... */ }
-function formatTime(seconds) { const minutes = Math.floor(seconds / 60); const remainingSeconds = seconds % 60; return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`; }
-function updateTimerDisplay() { timeDisplay.textContent = `Time: ${formatTime(elapsedTimeInSeconds)}`; }
+
+async function addScoreToLeaderboard(uid, name, photoURL, newScore, country, countryCode, time, email) {
+    const playerData = { name, photoURL, score: newScore, country, countryCode, time, email };
+    const updateLogic = async (ref) => {
+        const doc = await ref.get();
+        if (!doc.exists || newScore > doc.data().score || (newScore === doc.data().score && time < doc.data().time)) {
+            await ref.set(playerData);
+        }
+    };
+    const globalPlayerRef = db.collection('leaderboards').doc('global').collection('scores').doc(uid);
+    await updateLogic(globalPlayerRef);
+    if (countryCode && countryCode !== 'N/A') {
+        const regionalPlayerRef = db.collection('leaderboards').doc(countryCode.toLowerCase()).collection('scores').doc(uid);
+        await updateLogic(regionalPlayerRef);
+    }
+}
+
+function formatTime(seconds) {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+}
+
+function updateTimerDisplay() {
+    timeDisplay.textContent = `Time: ${formatTime(elapsedTimeInSeconds)}`;
+}
+
 function renderLeaderboard(board) {
     leaderboardList.innerHTML = '';
     if (!board || board.length === 0) {
         leaderboardList.innerHTML = '<li>No scores yet.</li>';
         return;
     }
-    board.forEach(entry => {
+    board.forEach((entry, index) => {
         const li = document.createElement('li');
+        const rankSpan = document.createElement('span');
+        rankSpan.className = 'leaderboard-rank';
+        rankSpan.textContent = `${index + 1}.`;
+        
+        const entryDiv = document.createElement('div');
+        entryDiv.className = 'leaderboard-entry';
+
         const playerImg = document.createElement('img');
         playerImg.className = 'leaderboard-avatar';
         playerImg.src = entry.photoURL || 'https://i.imgur.com/sC5gU4e.png';
-        li.appendChild(playerImg);
+        
+        const detailsDiv = document.createElement('div');
+        detailsDiv.className = 'leaderboard-details';
+
+        const playerDiv = document.createElement('div');
+        playerDiv.className = 'leaderboard-player';
+        
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'leaderboard-player-name';
+        nameSpan.textContent = entry.name || 'Anonymous';
+        playerDiv.appendChild(nameSpan);
+
         if (entry.countryCode && entry.countryCode !== 'N/A' && entry.countryCode.length === 2) {
             const flagImg = document.createElement('img');
             flagImg.className = 'leaderboard-flag';
             flagImg.src = `https://flagcdn.com/w20/${entry.countryCode.toLowerCase()}.png`;
             flagImg.alt = entry.country;
             flagImg.title = entry.country;
-            li.appendChild(flagImg);
-        } else {
-            const fallbackEmoji = document.createTextNode('🌐');
-            li.appendChild(fallbackEmoji);
+            playerDiv.appendChild(flagImg);
         }
-        const timeDisplay = entry.time !== undefined ? ` (${formatTime(entry.time)})` : '';
-        const textNode = document.createTextNode(` ${entry.name || 'Anonymous'} - ${entry.score || 0}${timeDisplay}`);
-        li.appendChild(textNode);
+        
+        const statsSpan = document.createElement('span');
+        statsSpan.className = 'leaderboard-stats';
+        const timeDisplay = entry.time !== undefined ? ` in ${formatTime(entry.time)}` : '';
+        statsSpan.textContent = `Score: ${entry.score || 0}${timeDisplay}`;
+        
+        detailsDiv.appendChild(playerDiv);
+        detailsDiv.appendChild(statsSpan);
+        entryDiv.appendChild(playerImg);
+        entryDiv.appendChild(detailsDiv);
+        li.appendChild(rankSpan);
+        li.appendChild(entryDiv);
         leaderboardList.appendChild(li);
     });
 }
 
 // --- ENVÍO DE CORREO ---
-async function sendSmartNotification(name, currentScore, country, boardBefore, boardAfter, seenCountries, locationData) { /* ... sin cambios ... */ }
+async function sendSmartNotification(name, currentScore, country, boardBefore, boardAfter, seenCountries, locationData) {
+    if (currentScore === 0) { console.log("Score is 0, no notification sent."); return; }
+    let shouldSendEmail = false;
+    let emailReason = "";
+    if (country && country !== 'N/A' && !seenCountries.includes(country)) {
+        shouldSendEmail = true;
+        emailReason = `New Country: ${country}!`;
+        try {
+            const seenCountriesRef = db.collection('gameStats').doc('seenCountries');
+            await seenCountriesRef.update({ list: firebase.firestore.FieldValue.arrayUnion(country) });
+        } catch (error) {
+            if (error.code === 'not-found') {
+                await db.collection('gameStats').doc('seenCountries').set({ list: [country] });
+            }
+        }
+    }
+    const oldIndex = boardBefore.findIndex(p => p.id === auth.currentUser.uid);
+    const newIndex = boardAfter.findIndex(p => p.id === auth.currentUser.uid);
+    const enteredTop5 = newIndex !== -1 && newIndex < 5 && (oldIndex === -1 || oldIndex >= 5);
+    if (enteredTop5 && !shouldSendEmail) {
+        shouldSendEmail = true;
+        emailReason = `Entered Top 5 at #${newIndex + 1}!`;
+    }
+    if (!shouldSendEmail) { console.log("Conditions for notification not met."); return; }
+    const params = { player_name: `${name} (${emailReason})`, player_score: currentScore, player_ip: locationData.ip || "Unknown", player_country: country };
+    console.log('Sending SMART notification with these params:', params);
+    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, params)
+        .then(() => console.log("Smart notification sent successfully!"))
+        .catch(err => console.error("EmailJS send failed:", err));
+}
 
 // --- Lógica de Audio y Compartir ---
-function toggleMute() { /* ... sin cambios ... */ }
-function shareToTwitter() { /* ... sin cambios ... */ }
-function shareToWhatsApp() { /* ... sin cambios ... */ }
+function toggleMute() { isMuted = !isMuted; backgroundMusic.muted = isMuted; muteBtn.textContent = isMuted ? '🔇' : '🔊'; localStorage.setItem('gameMuted', isMuted.toString()); }
+function shareToTwitter() { const finalScore = finalScoreDisplay.textContent; const gameUrl = "https://franbucho.github.io/ProfileMiniGame/"; const text = `I scored ${finalScore} points in Retro Snake Worldwide! Can you beat my score? 🐍 #RetroSnake #JavaScriptGame`; const twitterUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(gameUrl)}&text=${encodeURIComponent(text)}`; window.open(twitterUrl, '_blank'); }
+function shareToWhatsApp() { const finalScore = finalScoreDisplay.textContent; const gameUrl = "https://franbucho.github.io/ProfileMiniGame/"; const text = `I scored ${finalScore} points in Retro Snake Worldwide! Can you beat my score? 🐍\n\nPlay here: ${gameUrl}`; const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`; window.open(whatsappUrl, '_blank'); }
 
 // --- INICIALIZACIÓN ---
 async function initialLoad() {
@@ -314,7 +446,7 @@ async function initialLoad() {
         const board = await getLeaderboard();
         renderLeaderboard(board);
     } catch(e) {
-        console.error("Could not load leaderboard.", e);
+        console.error("Could not load leaderboard. You might need to create a composite index in Firebase. Look for a link in the error message below to create it automatically.", e);
         leaderboardList.innerHTML = '<li>Error: Check console (F12) to create DB index.</li>';
     }
     updatePlayCount(true);
@@ -333,8 +465,7 @@ whatsappShareBtn.addEventListener('click', shareToWhatsApp);
 globalBtn.addEventListener('click', async () => {
     regionalBtn.classList.remove('active');
     globalBtn.classList.add('active');
-    const board = await getLeaderboard('global');
-    renderLeaderboard(board);
+    renderLeaderboard(await getLeaderboard('global'));
 });
 
 regionalBtn.addEventListener('click', async () => {
@@ -346,8 +477,7 @@ regionalBtn.addEventListener('click', async () => {
     if (region) {
         globalBtn.classList.remove('active');
         regionalBtn.classList.add('active');
-        const board = await getLeaderboard(region);
-        renderLeaderboard(board);
+        renderLeaderboard(await getLeaderboard(region));
     } else {
         alert("Your region is not set yet. Play a game first.");
     }

@@ -19,7 +19,7 @@ body {
   padding: 30px;
   border-radius: 12px;
   box-shadow: 0 0 15px #00ff88aa;
-  max-width: 950px; /* Un poco más de ancho para que todo respire */
+  max-width: 900px;
   width: 95%;
   text-align: center;
   overflow: hidden;
@@ -51,6 +51,10 @@ h1 {
     color: white;
     border: none;
     padding: 12px 20px;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s;
 }
 .google-btn:hover {
     background-color: #357ae8;
@@ -120,7 +124,7 @@ h1 {
 
 .info-column {
     flex: 1;
-    min-width: 300px; /* Un poco más de ancho para la tabla */
+    min-width: 300px;
 }
 
 #gameCanvas {
@@ -189,8 +193,7 @@ button:disabled {
   background-color: #0d0d0d;
   padding: 15px 25px;
   border-radius: 8px;
-  /* ¡AJUSTE CLAVE AQUÍ! */
-  height: 530px; /* Altura fija para alinear con el juego y mostrar más jugadores */
+  height: 505px;
   overflow-y: auto;
   box-sizing: border-box;
   display: flex;
@@ -303,21 +306,68 @@ button:disabled {
   box-shadow: 0 0 20px #ff4444aa;
   border: 1px solid #ff4444;
 }
+
 .game-over-buttons {
     display: flex;
     justify-content: center;
     gap: 15px;
     margin-top: 20px;
 }
+
 .game-over-buttons button {
     margin: 0;
 }
+
+/* Estilos para compartir */
 .share-section {
     margin-top: 25px;
     border-top: 1px solid #444;
     padding-top: 15px;
 }
-/* ... (resto de estilos de botones de compartir y footer sin cambios) ... */
+.share-section p {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    color: #aaa;
+}
+.share-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+.share-button {
+    border: none;
+    border-radius: 5px;
+    padding: 8px 15px;
+    font-size: 14px;
+    font-weight: bold;
+    color: white;
+}
+.share-button.twitter { background-color: #1DA1F2; }
+.share-button.whatsapp { background-color: #25D366; }
+
+/* Footer de la página */
+.page-footer {
+    padding-top: 20px;
+    margin-top: 20px;
+    border-top: 1px solid #333;
+}
+
+.donation-button {
+    display: inline-block;
+    padding: 10px 20px;
+    background-color: #FFDD00;
+    color: #000000;
+    text-decoration: none;
+    font-weight: bold;
+    font-family: 'Poppins', sans-serif;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.donation-button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 15px rgba(0,0,0,0.3);
+}
 
 /* Estilos Misceláneos */
 .top-bar {
@@ -352,11 +402,12 @@ button:disabled {
 /* --- ESTILOS PARA TELÉFONOS Y PANTALLAS PEQUEÑAS --- */
 @media (max-width: 920px) {
   .container {
-    max-width: none;
+    max-width: 100%;
     width: 100%;
     padding: 15px 10px;
     border-radius: 0;
     min-height: calc(100vh - 20px);
+    box-sizing: border-box;
   }
   .main-content {
     flex-direction: column;
@@ -366,8 +417,8 @@ button:disabled {
   #leaderboard {
     width: 100%;
     box-sizing: border-box;
-    height: auto; /* Altura automática en móvil */
-    max-height: 250px; /* Más altura para ver más nombres */
+    height: auto;
+    max-height: 250px; /* Altura aumentada para móvil */
   }
   h1 {
     font-size: 1.5rem;
