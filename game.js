@@ -31,7 +31,6 @@ const loginBtn = document.getElementById('loginBtn');
 const logoutBtn = document.getElementById('logoutBtn');
 const userAvatar = document.getElementById('userAvatar');
 const userName = document.getElementById('userName');
-
 const startBtn = document.getElementById('startBtn');
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -39,16 +38,13 @@ const scoreDisplay = document.getElementById('scoreDisplay');
 const timeDisplay = document.getElementById('timeDisplay');
 const playCounterDisplay = document.getElementById('playCounterDisplay');
 const leaderboardList = document.getElementById('leaderboardList');
-
 const gameOverScreen = document.getElementById('gameOverScreen');
 const finalScoreDisplay = document.getElementById('finalScore');
 const playAgainBtn = document.getElementById('playAgainBtn');
 const lobbyBtn = document.getElementById('lobbyBtn');
 const muteBtn = document.getElementById('muteBtn');
-
 const twitterShareBtn = document.getElementById('twitterShareBtn');
 const whatsappShareBtn = document.getElementById('whatsappShareBtn');
-
 const globalBtn = document.getElementById('globalBtn');
 const regionalBtn = document.getElementById('regionalBtn');
 
@@ -85,13 +81,11 @@ async function fetchUserRegion(uid) {
         if (playerDoc.exists && playerDoc.data().countryCode) {
             currentUserRegion = playerDoc.data().countryCode.toLowerCase();
             regionalBtn.disabled = false;
-            console.log(`Región de usuario encontrada: ${currentUserRegion}`);
         } else {
             regionalBtn.disabled = true;
-            console.log("El usuario no tiene una región guardada todavía.");
         }
     } catch (error) {
-        console.error("Error al buscar la región del usuario:", error);
+        console.error("Error fetching user region:", error);
         regionalBtn.disabled = true;
     }
 }
@@ -107,14 +101,13 @@ function signOut() {
     auth.signOut();
 }
 
-
 // --- Funciones de Flujo del Juego ---
 function showLobby() {
     gameOverScreen.classList.remove('visible');
     startBtn.disabled = false;
     logoutBtn.disabled = false;
     auth.onAuthStateChanged(auth.currentUser);
-    renderLeaderboard(globalBtn.classList.contains('active') ? 'global' : currentUserRegion);
+    renderLeaderboard();
 }
 
 function startGame() {
@@ -125,6 +118,11 @@ function startGame() {
     
     startBtn.disabled = true;
     logoutBtn.disabled = true;
+
+    if (!isMuted && backgroundMusic.paused) {
+        backgroundMusic.play().catch(e => console.error("Audio autoplay was blocked.", e));
+    }
+    
     runGame();
 }
 
@@ -238,19 +236,14 @@ document.addEventListener('keydown', e => {
 
 canvas.addEventListener('touchstart', (e) => { e.preventDefault(); touchStartX = e.changedTouches[0].screenX; touchStartY = e.changedTouches[0].screenY; }, { passive: false });
 canvas.addEventListener('touchend', (e) => { e.preventDefault(); const touchEndX = e.changedTouches[0].screenX; const touchEndY = e.changedTouches[0].screenY; handleSwipe(touchEndX, touchEndY); }, { passive: false });
-
 function handleSwipe(endX, endY) {
     const diffX = endX - touchStartX;
     const diffY = endY - touchStartY;
     const threshold = 30;
     if (Math.abs(diffX) > Math.abs(diffY)) {
-        if (Math.abs(diffX) > threshold) {
-            handleDirectionChange(diffX > 0 ? 1 : -1, 0);
-        }
+        if (Math.abs(diffX) > threshold) handleDirectionChange(diffX > 0 ? 1 : -1, 0);
     } else {
-        if (Math.abs(diffY) > threshold) {
-            handleDirectionChange(0, diffY > 0 ? 1 : -1);
-        }
+        if (Math.abs(diffY) > threshold) handleDirectionChange(0, diffY > 0 ? 1 : -1);
     }
 }
 
@@ -343,41 +336,34 @@ function updateTimerDisplay() {
     timeDisplay.textContent = `Time: ${formatTime(elapsedTimeInSeconds)}`;
 }
 
-async function renderLeaderboard(region = 'global') {
-    leaderboardList.innerHTML = '<li>Loading...</li>';
-    try {
-        const board = await getLeaderboard(region);
-        leaderboardList.innerHTML = '';
-        if (board.length === 0) {
-            leaderboardList.innerHTML = '<li>No scores yet.</li>';
-            return;
-        }
-        board.forEach(entry => {
-            const li = document.createElement('li');
-            const playerImg = document.createElement('img');
-            playerImg.className = 'leaderboard-avatar';
-            playerImg.src = entry.photoURL || 'https://i.imgur.com/sC5gU4e.png';
-            li.appendChild(playerImg);
-            if (entry.countryCode && entry.countryCode !== 'N/A' && entry.countryCode.length === 2) {
-                const flagImg = document.createElement('img');
-                flagImg.className = 'leaderboard-flag';
-                flagImg.src = `https://flagcdn.com/w20/${entry.countryCode.toLowerCase()}.png`;
-                flagImg.alt = entry.country;
-                flagImg.title = entry.country;
-                li.appendChild(flagImg);
-            } else {
-                const fallbackEmoji = document.createTextNode('🌐');
-                li.appendChild(fallbackEmoji);
-            }
-            const timeDisplay = entry.time !== undefined ? ` (${formatTime(entry.time)})` : '';
-            const textNode = document.createTextNode(` ${entry.name} - ${entry.score}${timeDisplay}`);
-            li.appendChild(textNode);
-            leaderboardList.appendChild(li);
-        });
-    } catch (e) {
-        console.error("Could not load leaderboard.", e);
-        leaderboardList.innerHTML = '<li>Error: Check console (F12) for details.</li>';
+function renderLeaderboard(board) {
+    leaderboardList.innerHTML = '';
+    if (!board || board.length === 0) {
+        leaderboardList.innerHTML = '<li>No scores yet.</li>';
+        return;
     }
+    board.forEach(entry => {
+        const li = document.createElement('li');
+        const playerImg = document.createElement('img');
+        playerImg.className = 'leaderboard-avatar';
+        playerImg.src = entry.photoURL || 'https://i.imgur.com/sC5gU4e.png';
+        li.appendChild(playerImg);
+        if (entry.countryCode && entry.countryCode !== 'N/A' && entry.countryCode.length === 2) {
+            const flagImg = document.createElement('img');
+            flagImg.className = 'leaderboard-flag';
+            flagImg.src = `https://flagcdn.com/w20/${entry.countryCode.toLowerCase()}.png`;
+            flagImg.alt = entry.country;
+            flagImg.title = entry.country;
+            li.appendChild(flagImg);
+        } else {
+            const fallbackEmoji = document.createTextNode('🌐');
+            li.appendChild(fallbackEmoji);
+        }
+        const timeDisplay = entry.time !== undefined ? ` (${formatTime(entry.time)})` : '';
+        const textNode = document.createTextNode(` ${entry.name || 'Anonymous'} - ${entry.score || 0}${timeDisplay}`);
+        li.appendChild(textNode);
+        leaderboardList.appendChild(li);
+    });
 }
 
 // --- ENVÍO DE CORREO ---
@@ -457,8 +443,8 @@ async function initialLoad() {
         const board = await getLeaderboard();
         renderLeaderboard(board);
     } catch(e) {
-        console.error("Could not load leaderboard. You might need to create a composite index in Firebase. Look for a link in the error message below to create it automatically.", e);
-        leaderboardList.innerHTML = '<li>Error: Check console (F12) to create DB index.</li>';
+        console.error("Could not load leaderboard.", e);
+        leaderboardList.innerHTML = '<li>Error: Check console (F12) for details.</li>';
     }
     updatePlayCount(true);
 }
@@ -479,7 +465,7 @@ globalBtn.addEventListener('click', () => {
 });
 regionalBtn.addEventListener('click', () => {
     if (regionalBtn.disabled) {
-        alert("Play a game to set your region and view the regional leaderboard.");
+        alert("Play at least one game to set your region.");
         return;
     }
     const region = localStorage.getItem('userRegion') || currentUserRegion;
