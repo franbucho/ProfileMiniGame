@@ -86,13 +86,14 @@ function signOut() {
     auth.signOut();
 }
 
+
 // --- Funciones de Flujo del Juego ---
 function showLobby() {
     gameOverScreen.classList.remove('visible');
     startBtn.disabled = false;
     logoutBtn.disabled = false;
     auth.onAuthStateChanged(auth.currentUser);
-    renderLeaderboard();
+    renderLeaderboard(globalBtn.classList.contains('active') ? 'global' : localStorage.getItem('userRegion'));
 }
 
 function startGame() {
@@ -198,7 +199,9 @@ function handleDirectionChange(newDx, newDy) {
     const goingDown = dy === 1;
     const goingRight = dx === 1;
     const goingLeft = dx === -1;
-    if ((goingUp && newDy === 1) || (goingDown && newDy === -1) || (goingLeft && newDx === 1) || (goingRight && newDx === -1)) return;
+    if ((goingUp && newDy === 1) || (goingDown && newDy === -1) || (goingLeft && newDx === 1) || (goingRight && newDx === -1)) {
+        return;
+    }
     dx = newDx;
     dy = newDy;
 }
@@ -212,16 +215,35 @@ document.addEventListener('keydown', e => {
   }
 });
 
-canvas.addEventListener('touchstart', (e) => { e.preventDefault(); touchStartX = e.changedTouches[0].screenX; touchStartY = e.changedTouches[0].screenY; }, { passive: false });
-canvas.addEventListener('touchend', (e) => { e.preventDefault(); const touchEndX = e.changedTouches[0].screenX; const touchEndY = e.changedTouches[0].screenY; handleSwipe(touchEndX, touchEndY); }, { passive: false });
+canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    touchStartX = e.changedTouches[0].screenX;
+    touchStartY = e.changedTouches[0].screenY;
+}, { passive: false });
+
+canvas.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    const touchEndX = e.changedTouches[0].screenX;
+    const touchEndY = e.changedTouches[0].screenY;
+    handleSwipe(touchEndX, touchEndY);
+}, { passive: false });
+
 function handleSwipe(endX, endY) {
-    const diffX = endX - touchStartX, diffY = endY - touchStartY, threshold = 30;
+    const diffX = endX - touchStartX;
+    const diffY = endY - touchStartY;
+    const threshold = 30;
+
     if (Math.abs(diffX) > Math.abs(diffY)) {
-        if (Math.abs(diffX) > threshold) handleDirectionChange(diffX > 0 ? 1 : -1, 0);
+        if (Math.abs(diffX) > threshold) {
+            handleDirectionChange(diffX > 0 ? 1 : -1, 0);
+        }
     } else {
-        if (Math.abs(diffY) > threshold) handleDirectionChange(0, diffY > 0 ? 1 : -1);
+        if (Math.abs(diffY) > threshold) {
+            handleDirectionChange(0, diffY > 0 ? 1 : -1);
+        }
     }
 }
+
 
 // --- Lógica Central de Fin de Partida ---
 async function processEndOfGame() {
@@ -230,6 +252,7 @@ async function processEndOfGame() {
     const { displayName: name, uid, photoURL, email } = user;
     const currentScore = score;
     const time = elapsedTimeInSeconds;
+    
     let locationData;
     try {
         const response = await fetch('https://ipapi.co/json/');
@@ -240,12 +263,19 @@ async function processEndOfGame() {
     }
     const country = locationData.country_name;
     const countryCode = locationData.country_code;
+
+    if (countryCode && countryCode !== 'N/A') {
+        localStorage.setItem('userRegion', countryCode.toLowerCase());
+    }
+
     const boardBeforeUpdate = await getLeaderboard();
     const seenCountriesDoc = await db.collection('gameStats').doc('seenCountries').get();
     const seenCountries = seenCountriesDoc.exists ? seenCountriesDoc.data().list : [];
+
     await addScoreToLeaderboard(uid, name, photoURL, currentScore, country, countryCode, time, email);
     const updatedBoard = await getLeaderboard(regionalBtn.classList.contains('active') ? (localStorage.getItem('userRegion') || 'global') : 'global');
     renderLeaderboard(updatedBoard);
+
     sendSmartNotification(name, currentScore, country, boardBeforeUpdate, updatedBoard, seenCountries, locationData);
 }
 
@@ -283,14 +313,17 @@ async function getLeaderboard(region = 'global') {
 
 async function addScoreToLeaderboard(uid, name, photoURL, newScore, country, countryCode, time, email) {
     const playerData = { name, photoURL, score: newScore, country, countryCode, time, email };
+
     const updateLogic = async (ref) => {
         const doc = await ref.get();
         if (!doc.exists || newScore > doc.data().score || (newScore === doc.data().score && time < doc.data().time)) {
             await ref.set(playerData);
         }
     };
+    
     const globalPlayerRef = db.collection('leaderboards').doc('global').collection('scores').doc(uid);
     await updateLogic(globalPlayerRef);
+
     if (countryCode && countryCode !== 'N/A') {
         const regionalPlayerRef = db.collection('leaderboards').doc(countryCode.toLowerCase()).collection('scores').doc(uid);
         await updateLogic(regionalPlayerRef);
@@ -315,10 +348,12 @@ function renderLeaderboard(board) {
     }
     board.forEach(entry => {
         const li = document.createElement('li');
+        
         const playerImg = document.createElement('img');
         playerImg.className = 'leaderboard-avatar';
         playerImg.src = entry.photoURL || 'https://i.imgur.com/sC5gU4e.png';
         li.appendChild(playerImg);
+
         if (entry.countryCode && entry.countryCode !== 'N/A' && entry.countryCode.length === 2) {
             const flagImg = document.createElement('img');
             flagImg.className = 'leaderboard-flag';
@@ -330,18 +365,81 @@ function renderLeaderboard(board) {
             const fallbackEmoji = document.createTextNode('🌐');
             li.appendChild(fallbackEmoji);
         }
+        
         const timeDisplay = entry.time !== undefined ? ` (${formatTime(entry.time)})` : '';
         const textNode = document.createTextNode(` ${entry.name} - ${entry.score}${timeDisplay}`);
         li.appendChild(textNode);
+        
         leaderboardList.appendChild(li);
     });
 }
 
-// --- ENVÍO DE CORREO, AUDIO, Y COMPARTIR ---
-async function sendSmartNotification(name, currentScore, country, boardBefore, boardAfter, seenCountries, locationData) { /* ... (Sin cambios) ... */ }
-function toggleMute() { /* ... (Sin cambios) ... */ }
-function shareToTwitter() { /* ... (Sin cambios) ... */ }
-function shareToWhatsApp() { /* ... (Sin cambios) ... */ }
+// --- ENVÍO DE CORREO ---
+async function sendSmartNotification(name, currentScore, country, boardBefore, boardAfter, seenCountries, locationData) {
+    if (currentScore === 0) {
+        console.log("Score is 0, no notification sent.");
+        return;
+    }
+    let shouldSendEmail = false;
+    let emailReason = "";
+    if (country && country !== 'N/A' && !seenCountries.includes(country)) {
+        shouldSendEmail = true;
+        emailReason = `New Country: ${country}!`;
+        try {
+            const seenCountriesRef = db.collection('gameStats').doc('seenCountries');
+            await seenCountriesRef.update({ list: firebase.firestore.FieldValue.arrayUnion(country) });
+        } catch (error) {
+            if (error.code === 'not-found') {
+                await db.collection('gameStats').doc('seenCountries').set({ list: [country] });
+            }
+        }
+    }
+    const oldIndex = boardBefore.findIndex(p => p.id === auth.currentUser.uid);
+    const newIndex = boardAfter.findIndex(p => p.id === auth.currentUser.uid);
+    const enteredTop5 = newIndex !== -1 && newIndex < 5 && (oldIndex === -1 || oldIndex >= 5);
+    if (enteredTop5 && !shouldSendEmail) {
+        shouldSendEmail = true;
+        emailReason = `Entered Top 5 at #${newIndex + 1}!`;
+    }
+    if (!shouldSendEmail) {
+        console.log("Conditions for notification not met.");
+        return;
+    }
+    const params = {
+        player_name: `${name} (${emailReason})`,
+        player_score: currentScore,
+        player_ip: locationData.ip || "Unknown",
+        player_country: country
+    };
+    console.log('Sending SMART notification with these params:', params);
+    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, params)
+        .then(() => console.log("Smart notification sent successfully!"))
+        .catch(err => console.error("EmailJS send failed:", err));
+}
+
+// --- Lógica de Audio y Compartir ---
+function toggleMute() {
+    isMuted = !isMuted;
+    backgroundMusic.muted = isMuted;
+    muteBtn.textContent = isMuted ? '🔇' : '🔊';
+    localStorage.setItem('gameMuted', isMuted.toString());
+}
+
+function shareToTwitter() {
+    const finalScore = finalScoreDisplay.textContent;
+    const gameUrl = "https://franbucho.github.io/ProfileMiniGame/";
+    const text = `I scored ${finalScore} points in Retro Snake Worldwide! Can you beat my score? 🐍 #RetroSnake #JavaScriptGame`;
+    const twitterUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(gameUrl)}&text=${encodeURIComponent(text)}`;
+    window.open(twitterUrl, '_blank');
+}
+
+function shareToWhatsApp() {
+    const finalScore = finalScoreDisplay.textContent;
+    const gameUrl = "https://franbucho.github.io/ProfileMiniGame/";
+    const text = `I scored ${finalScore} points in Retro Snake Worldwide! Can you beat my score? 🐍\n\nPlay here: ${gameUrl}`;
+    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+    window.open(whatsappUrl, '_blank');
+}
 
 // --- INICIALIZACIÓN ---
 async function initialLoad() {
@@ -356,7 +454,7 @@ async function initialLoad() {
         renderLeaderboard(board);
     } catch(e) {
         console.error("Could not load leaderboard. You might need to create a composite index in Firebase. Look for a link in the error message below to create it automatically.", e);
-        leaderboardList.innerHTML = '<li>Error loading scores. Check browser console (F12).</li>';
+        leaderboardList.innerHTML = '<li>Error: Check console (F12) to create DB index.</li>';
     }
     updatePlayCount(true);
 }
