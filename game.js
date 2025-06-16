@@ -32,8 +32,6 @@ const logoutBtn = document.getElementById('logoutBtn');
 const userAvatar = document.getElementById('userAvatar');
 const userName = document.getElementById('userName');
 
-const setupScreen = document.getElementById('setupScreen');
-const gameScreen = document.getElementById('gameScreen');
 const startBtn = document.getElementById('startBtn');
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -41,8 +39,6 @@ const scoreDisplay = document.getElementById('scoreDisplay');
 const timeDisplay = document.getElementById('timeDisplay');
 const playCounterDisplay = document.getElementById('playCounterDisplay');
 const leaderboardList = document.getElementById('leaderboardList');
-const leaderboardContainer = document.getElementById('leaderboard');
-const donationContainer = document.querySelector('.donation-container');
 
 const gameOverScreen = document.getElementById('gameOverScreen');
 const finalScoreDisplay = document.getElementById('finalScore');
@@ -101,24 +97,23 @@ async function fetchUserRegion(uid) {
 
 function signInWithGoogle() {
     const provider = new firebase.auth.GoogleAuthProvider();
-    auth.signInWithPopup(provider).catch(error => { console.error("Error during sign-in:", error); });
+    auth.signInWithPopup(provider).catch(error => {
+        console.error("Error during sign-in:", error);
+    });
 }
 
 function signOut() {
     auth.signOut();
 }
 
-
 // --- Funciones de Flujo del Juego ---
 function showLobby() {
     gameOverScreen.classList.remove('visible');
-    // Mostrar la pantalla de setup/lobby
-    setupScreen.style.display = 'block';
-    gameScreen.style.display = 'none';
-    leaderboardContainer.style.display = 'block';
-    donationContainer.style.display = 'block';
-    auth.onAuthStateChanged(auth.currentUser); // Forzar re-chequeo del estado de login
-    renderLeaderboard();
+    startBtn.disabled = false;
+    logoutBtn.disabled = false;
+    // Forzar re-chequeo del estado del UI de Auth por si acaso
+    auth.onAuthStateChanged(auth.currentUser);
+    renderLeaderboard(globalBtn.classList.contains('active') ? 'global' : currentUserRegion);
 }
 
 function startGame() {
@@ -127,13 +122,9 @@ function startGame() {
         return;
     }
     
-    // Ocultar la pantalla de lobby y mostrar la de juego
-    setupScreen.style.display = 'none';
-    leaderboardContainer.style.display = 'none';
-    donationContainer.style.display = 'none';
-    gameScreen.style.display = 'flex';
+    startBtn.disabled = true;
+    logoutBtn.disabled = true;
 
-    // Iniciar la música con la primera interacción del usuario
     if (!isMuted && backgroundMusic.paused) {
         backgroundMusic.play().catch(e => console.error("Audio autoplay was blocked by browser.", e));
     }
@@ -149,11 +140,7 @@ function runGame() {
   
   elapsedTimeInSeconds = 0;
   updateTimerDisplay();
-  gameTimerInterval = setInterval(() => {
-    elapsedTimeInSeconds++;
-    updateTimerDisplay();
-  }, 1000);
-
+  
   updatePlayCount();
   resetGame();
   draw();
@@ -169,6 +156,8 @@ function initiateGameOverSequence() {
     canvas.classList.add('snake-hit');
     setTimeout(() => {
         canvas.classList.remove('snake-hit');
+        startBtn.disabled = false;
+        logoutBtn.disabled = false;
         processEndOfGame();
         finalScoreDisplay.textContent = score;
         gameOverScreen.classList.add('visible');
@@ -182,6 +171,7 @@ function resetGame() {
   dx = 1; dy = 0; score = 0;
   scoreDisplay.textContent = "Score: 0";
 }
+
 function draw() {
   if (!snake) return;
   ctx.fillStyle = "#2c2c2c";
@@ -203,6 +193,7 @@ function draw() {
     }
   });
 }
+
 function move() {
   const head = { x: snake[0].x + dx, y: snake[0].y + dy };
   if (head.x < 0 || head.x >= gridSize || head.y < 0 || head.y >= gridSize || snake.slice(1).some(p => p.x === head.x && p.y === head.y)) {
@@ -225,9 +216,15 @@ function move() {
 // --- Controles ---
 function handleDirectionChange(newDx, newDy) {
     if (!gameInterval) return;
-    const goingUp = dy === -1, goingDown = dy === 1, goingRight = dx === 1, goingLeft = dx === -1;
-    if ((goingUp && newDy === 1) || (goingDown && newDy === -1) || (goingLeft && newDx === 1) || (goingRight && newDx === -1)) return;
-    dx = newDx; dy = newDy;
+    const goingUp = dy === -1;
+    const goingDown = dy === 1;
+    const goingRight = dx === 1;
+    const goingLeft = dx === -1;
+    if ((goingUp && newDy === 1) || (goingDown && newDy === -1) || (goingLeft && newDx === 1) || (goingRight && newDx === -1)) {
+        return;
+    }
+    dx = newDx;
+    dy = newDy;
 }
 document.addEventListener('keydown', e => {
   switch (e.key) {
@@ -240,11 +237,17 @@ document.addEventListener('keydown', e => {
 canvas.addEventListener('touchstart', (e) => { e.preventDefault(); touchStartX = e.changedTouches[0].screenX; touchStartY = e.changedTouches[0].screenY; }, { passive: false });
 canvas.addEventListener('touchend', (e) => { e.preventDefault(); const touchEndX = e.changedTouches[0].screenX; const touchEndY = e.changedTouches[0].screenY; handleSwipe(touchEndX, touchEndY); }, { passive: false });
 function handleSwipe(endX, endY) {
-    const diffX = endX - touchStartX, diffY = endY - touchStartY, threshold = 30;
+    const diffX = endX - touchStartX;
+    const diffY = endY - touchStartY;
+    const threshold = 30;
     if (Math.abs(diffX) > Math.abs(diffY)) {
-        if (Math.abs(diffX) > threshold) handleDirectionChange(diffX > 0 ? 1 : -1, 0);
+        if (Math.abs(diffX) > threshold) {
+            handleDirectionChange(diffX > 0 ? 1 : -1, 0);
+        }
     } else {
-        if (Math.abs(diffY) > threshold) handleDirectionChange(0, diffY > 0 ? 1 : -1);
+        if (Math.abs(diffY) > threshold) {
+            handleDirectionChange(0, diffY > 0 ? 1 : -1);
+        }
     }
 }
 
@@ -253,7 +256,8 @@ async function processEndOfGame() {
     const user = auth.currentUser;
     if (!user) return;
     const { displayName: name, uid, photoURL, email } = user;
-    const currentScore = score; const time = elapsedTimeInSeconds;
+    const currentScore = score;
+    const time = elapsedTimeInSeconds;
     let locationData;
     try {
         const response = await fetch('https://ipapi.co/json/');
@@ -262,7 +266,8 @@ async function processEndOfGame() {
         console.warn('IP lookup failed.', error);
         locationData = { country_name: 'N/A', country_code: 'N/A', ip: 'N/A' };
     }
-    const country = locationData.country_name; const countryCode = locationData.country_code;
+    const country = locationData.country_name;
+    const countryCode = locationData.country_code;
     if (countryCode && countryCode !== 'N/A') {
         currentUserRegion = countryCode.toLowerCase();
         localStorage.setItem('userRegion', currentUserRegion);
@@ -303,7 +308,9 @@ async function getLeaderboard(region = 'global') {
     const leaderboardRef = db.collection('leaderboards').doc(region).collection('scores').orderBy('score', 'desc').orderBy('time', 'asc').limit(100);
     const snapshot = await leaderboardRef.get();
     const board = [];
-    snapshot.forEach(doc => { board.push({ id: doc.id, ...doc.data() }); });
+    snapshot.forEach(doc => {
+        board.push({ id: doc.id, ...doc.data() });
+    });
     return board;
 }
 async function addScoreToLeaderboard(uid, name, photoURL, newScore, country, countryCode, time, email) {
@@ -321,8 +328,14 @@ async function addScoreToLeaderboard(uid, name, photoURL, newScore, country, cou
         await updateLogic(regionalPlayerRef);
     }
 }
-function formatTime(seconds) { const minutes = Math.floor(seconds / 60); const remainingSeconds = seconds % 60; return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`; }
-function updateTimerDisplay() { timeDisplay.textContent = `Time: ${formatTime(elapsedTimeInSeconds)}`; }
+function formatTime(seconds) {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+}
+function updateTimerDisplay() {
+    timeDisplay.textContent = `Time: ${formatTime(elapsedTimeInSeconds)}`;
+}
 function renderLeaderboard(board) {
     leaderboardList.innerHTML = '';
     if (!board || board.length === 0) {
@@ -339,6 +352,7 @@ function renderLeaderboard(board) {
         const playerImg = document.createElement('img');
         playerImg.className = 'leaderboard-avatar';
         playerImg.src = entry.photoURL || 'https://i.imgur.com/sC5gU4e.png';
+        entryDiv.appendChild(playerImg);
         const detailsDiv = document.createElement('div');
         detailsDiv.className = 'leaderboard-details';
         const playerDiv = document.createElement('div');
@@ -361,14 +375,44 @@ function renderLeaderboard(board) {
         const timeDisplay = entry.time !== undefined ? ` in ${formatTime(entry.time)}` : '';
         statsSpan.textContent = `Score: ${entry.score || 0}${timeDisplay}`;
         detailsDiv.appendChild(statsSpan);
-        entryDiv.appendChild(playerImg);
         entryDiv.appendChild(detailsDiv);
         li.appendChild(rankSpan);
         li.appendChild(entryDiv);
         leaderboardList.appendChild(li);
     });
 }
-async function sendSmartNotification(name, currentScore, country, boardBefore, boardAfter, seenCountries, locationData) { /* ... sin cambios ... */ }
+
+// --- ENVÍO DE CORREO ---
+async function sendSmartNotification(name, currentScore, country, boardBefore, boardAfter, seenCountries, locationData) {
+    if (currentScore === 0) { console.log("Score is 0, no notification sent."); return; }
+    let shouldSendEmail = false;
+    let emailReason = "";
+    if (country && country !== 'N/A' && !seenCountries.includes(country)) {
+        shouldSendEmail = true;
+        emailReason = `New Country: ${country}!`;
+        try {
+            const seenCountriesRef = db.collection('gameStats').doc('seenCountries');
+            await seenCountriesRef.update({ list: firebase.firestore.FieldValue.arrayUnion(country) });
+        } catch (error) {
+            if (error.code === 'not-found') { await db.collection('gameStats').doc('seenCountries').set({ list: [country] }); }
+        }
+    }
+    const oldIndex = boardBefore.findIndex(p => p.id === auth.currentUser.uid);
+    const newIndex = boardAfter.findIndex(p => p.id === auth.currentUser.uid);
+    const enteredTop5 = newIndex !== -1 && newIndex < 5 && (oldIndex === -1 || oldIndex >= 5);
+    if (enteredTop5 && !shouldSendEmail) {
+        shouldSendEmail = true;
+        emailReason = `Entered Top 5 at #${newIndex + 1}!`;
+    }
+    if (!shouldSendEmail) { console.log("Conditions for notification not met."); return; }
+    const params = { player_name: `${name} (${emailReason})`, player_score: currentScore, player_ip: locationData.ip || "Unknown", player_country: country };
+    console.log('Sending SMART notification with these params:', params);
+    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, params)
+        .then(() => console.log("Smart notification sent successfully!"))
+        .catch(err => console.error("EmailJS send failed:", err));
+}
+
+// --- Lógica de Audio y Compartir ---
 function toggleMute() { isMuted = !isMuted; backgroundMusic.muted = isMuted; muteBtn.textContent = isMuted ? '🔇' : '🔊'; localStorage.setItem('gameMuted', isMuted.toString()); }
 function shareToTwitter() { const finalScore = finalScoreDisplay.textContent; const gameUrl = "https://franbucho.github.io/ProfileMiniGame/"; const text = `I scored ${finalScore} points in Retro Snake Worldwide! Can you beat my score? 🐍 #RetroSnake #JavaScriptGame`; const twitterUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(gameUrl)}&text=${encodeURIComponent(text)}`; window.open(twitterUrl, '_blank'); }
 function shareToWhatsApp() { const finalScore = finalScoreDisplay.textContent; const gameUrl = "https://franbucho.github.io/ProfileMiniGame/"; const text = `I scored ${finalScore} points in Retro Snake Worldwide! Can you beat my score? 🐍\n\nPlay here: ${gameUrl}`; const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`; window.open(whatsappUrl, '_blank'); }
@@ -390,6 +434,7 @@ async function initialLoad() {
     }
     updatePlayCount(true);
 }
+
 // Event Listeners
 loginBtn.addEventListener('click', signInWithGoogle);
 logoutBtn.addEventListener('click', signOut);
@@ -402,8 +447,7 @@ whatsappShareBtn.addEventListener('click', shareToWhatsApp);
 globalBtn.addEventListener('click', async () => {
     regionalBtn.classList.remove('active');
     globalBtn.classList.add('active');
-    const board = await getLeaderboard('global');
-    renderLeaderboard(board);
+    renderLeaderboard(await getLeaderboard('global'));
 });
 regionalBtn.addEventListener('click', async () => {
     if (regionalBtn.disabled) { alert("Play a game first to set your region."); return; }
@@ -411,8 +455,7 @@ regionalBtn.addEventListener('click', async () => {
     if (region) {
         globalBtn.classList.remove('active');
         regionalBtn.classList.add('active');
-        const board = await getLeaderboard(region);
-        renderLeaderboard(board);
+        renderLeaderboard(await getLeaderboard(region));
     } else {
         alert("Your region is not set yet. Play a game first.");
     }
