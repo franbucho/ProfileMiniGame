@@ -51,10 +51,6 @@ h1 {
     color: white;
     border: none;
     padding: 12px 20px;
-    border-radius: 6px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: background-color 0.2s;
 }
 .google-btn:hover {
     background-color: #357ae8;
@@ -274,6 +270,7 @@ button:disabled {
   width: 20px;
   height: auto;
   border-radius: 2px;
+  margin: 0 8px 0 4px; /* ¡ESPACIO AÑADIDO! */
 }
 
 /* Overlay de Game Over */
@@ -348,8 +345,7 @@ button:disabled {
 /* Footer de la página */
 .page-footer {
     padding-top: 20px;
-    margin-top: 20px;
-    border-top: 1px solid #333;
+    margin-top: auto;
 }
 
 .donation-button {
@@ -418,7 +414,7 @@ button:disabled {
     width: 100%;
     box-sizing: border-box;
     height: auto;
-    max-height: 250px; /* Altura aumentada para móvil */
+    max-height: 250px;
   }
   h1 {
     font-size: 1.5rem;
