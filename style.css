@@ -6,33 +6,34 @@ body {
     color: #eee;
     display: flex;
     justify-content: center;
-    align-items: flex-start; /* Align to top for better scrolling on mobile */
-    min-height: 100vh;
+    align-items: flex-start; /* Alinea al principio (arriba) para un mejor desplazamiento en móvil */
+    min-height: 100vh; /* Asegura que ocupe al menos el alto completo de la ventana */
     padding: 20px;
-    box-sizing: border-box;
-    overflow-y: auto; /* Enable scrolling for smaller screens */
+    box-sizing: border-box; /* Incluye padding en el ancho/alto del elemento */
+    overflow-y: auto; /* Habilita el desplazamiento vertical si el contenido es muy largo */
 }
 
 .container {
     background-color: #2c2c2c;
     border-radius: 10px;
-    box-shadow: 0 0 20px rgba(0, 255, 136, 0.4); /* Glow effect */
+    box-shadow: 0 0 20px rgba(0, 255, 136, 0.4); /* Efecto de brillo retro */
     padding: 25px;
     display: flex;
     flex-direction: column;
     width: 100%;
-    max-width: 1200px;
-    gap: 20px;
+    max-width: 1200px; /* Ancho máximo para el contenedor principal */
+    gap: 20px; /* Espacio entre los elementos hijos (columnas, encabezado, pie) */
 }
 
 /* Header Styles */
 .page-header {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    justify-content: center; /* **CLAVE:** Centra horizontalmente el grupo de elementos (título + botón de mute) */
+    align-items: center; /* Centra verticalmente los elementos */
     margin-bottom: 20px;
     border-bottom: 2px solid #00ff88;
     padding-bottom: 15px;
+    position: relative; /* **CLAVE:** Permite posicionar el botón de mute de forma absoluta dentro de él */
 }
 
 .page-header h1 {
@@ -40,12 +41,14 @@ body {
     color: #00ff88;
     text-shadow: 0 0 10px #00ff88, 0 0 20px #00ff88;
     font-size: 2.5em;
-    margin: 0 auto; /* Center the title */
-    text-align: center;
+    margin: 0; /* Elimina los márgenes por defecto para un centrado más preciso */
+    text-align: center; /* Asegura que el texto dentro del h1 esté centrado */
+    /* No se usa flex-grow aquí para que el h1 ocupe solo el espacio necesario y se centre */
 }
 
+/* El header-spacer ya no es necesario para el centrado con los ajustes actuales */
 .header-spacer {
-    flex-grow: 1;
+    display: none;
 }
 
 .icon-button {
@@ -55,6 +58,12 @@ body {
     cursor: pointer;
     color: #eee;
     transition: color 0.3s;
+    /* **CLAVE:** Posicionamiento absoluto para el botón de mute en desktop */
+    position: absolute;
+    right: 25px; /* Alinea a la derecha del page-header, con un padding */
+    top: 50%; /* Centra verticalmente */
+    transform: translateY(-50%); /* Ajuste fino para centrar el icono perfectamente */
+    z-index: 1; /* Asegura que esté por encima del título si hay alguna superposición */
 }
 
 .icon-button:hover {
@@ -64,20 +73,20 @@ body {
 /* Authentication Container */
 #auth-container {
     display: flex;
-    justify-content: center;
+    justify-content: center; /* Centra los elementos de login/perfil de usuario */
     margin-bottom: 20px;
     padding-bottom: 10px;
     border-bottom: 1px solid rgba(0, 255, 136, 0.2);
 }
 
 #loginScreen, #userProfile {
-    display: flex;
+    display: flex; /* Asegura que los elementos internos usen flexbox para su disposición */
     align-items: center;
     gap: 15px;
 }
 
 .google-btn {
-    background-color: #4285F4;
+    background-color: #4285F4; /* Azul de Google */
     color: white;
     border: none;
     border-radius: 5px;
@@ -100,7 +109,7 @@ body {
 }
 
 #userProfile {
-    display: none; /* Hidden by default, shown by JS */
+    display: none; /* Oculto por defecto, mostrado por JS */
 }
 
 .profile-info {
@@ -114,7 +123,7 @@ body {
     height: 40px;
     border-radius: 50%;
     border: 2px solid #00dd77;
-    object-fit: cover;
+    object-fit: cover; /* Asegura que la imagen no se distorsione */
 }
 
 #userName {
@@ -123,7 +132,7 @@ body {
 }
 
 .profile-buttons button {
-    background-color: #ff4444;
+    background-color: #ff4444; /* Rojo para el botón de logout */
     color: white;
     border: none;
     border-radius: 5px;
@@ -139,9 +148,9 @@ body {
 /* Main Content Layout */
 .main-content {
     display: flex;
-    flex-wrap: wrap; /* Allow wrapping for responsiveness */
-    gap: 30px;
-    justify-content: center;
+    flex-wrap: wrap; /* Permite que las columnas se envuelvan a la siguiente línea en pantallas pequeñas */
+    gap: 30px; /* Espacio entre las columnas */
+    justify-content: center; /* **CLAVE:** Centra horizontalmente las columnas (game-column e info-column) */
     width: 100%;
 }
 
@@ -152,27 +161,29 @@ body {
     padding: 20px;
     display: flex;
     flex-direction: column;
+    box-sizing: border-box;
 }
 
 .game-column {
-    flex: 2; /* Takes more space */
-    min-width: 300px; /* Minimum width for the game area */
-    max-width: 700px;
-    align-items: center;
+    /* **CLAVE:** Eliminar flex: 2; para que no crezca y el justify-content del padre lo centre como un bloque */
+    min-width: 300px; /* Ancho mínimo para la columna del juego */
+    max-width: 600px; /* Ancho máximo para la columna del juego en escritorio */
+    width: 100%; /* Permite que ocupe el 100% del espacio disponible, hasta su max-width */
+    align-items: center; /* Centra el contenido **interno** (canvas, video, overlay) de la columna del juego */
     gap: 15px;
 }
 
 .info-column {
-    flex: 1; /* Takes less space */
-    min-width: 280px; /* Minimum width for leaderboard */
-    max-width: 400px;
+    flex: 1; /* Permite que la columna de información crezca/encoja */
+    min-width: 280px; /* Ancho mínimo para la columna de información */
+    max-width: 400px; /* Ancho máximo para la columna de información */
     gap: 15px;
 }
 
 /* Game Info Display */
 .game-info {
     display: flex;
-    justify-content: space-around;
+    justify-content: space-around; /* Distribuye el espacio entre los elementos */
     width: 100%;
     margin-bottom: 15px;
     font-family: 'Press Start 2P', cursive;
@@ -184,11 +195,11 @@ body {
 /* Game Canvas and Overlay */
 #game-area {
     position: relative;
-    width: 100%; /* Make game area responsive */
-    max-width: 600px; /* Max width for canvas */
-    padding-bottom: 100%; /* Creates a square aspect ratio based on width */
-    height: 0; /* Important for padding-bottom trick */
-    overflow: hidden;
+    width: 100%; /* Hace que el área del juego sea responsive */
+    max-width: 600px; /* Ancho máximo para el canvas */
+    padding-bottom: 100%; /* Crea una relación de aspecto cuadrada (1:1) */
+    height: 0; /* Necesario para que padding-bottom funcione como altura */
+    overflow: hidden; /* Oculta cualquier contenido que se desborde */
     margin-bottom: 20px;
 }
 
@@ -205,7 +216,7 @@ body {
 }
 
 #gameCanvas.snake-hit {
-    border-color: #ff4444; /* Red border on hit */
+    border-color: #ff4444; /* Borde rojo cuando la serpiente choca */
 }
 
 #messageOverlay {
@@ -218,11 +229,11 @@ body {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    background-color: rgba(0, 0, 0, 0.85);
+    background-color: rgba(0, 0, 0, 0.85); /* Fondo semitransparente oscuro */
     text-align: center;
     box-sizing: border-box;
-    z-index: 10; /* Ensure it's above the canvas */
-    display: none; /* Hidden by default, shown by JS */
+    z-index: 10; /* Asegura que esté por encima del canvas */
+    display: none; /* Oculto por defecto, mostrado por JS */
     border-radius: 5px;
 }
 
@@ -261,19 +272,19 @@ body {
 
 /* Camera Preview */
 #inputVideo {
-    display: block; /* Always visible but controlled by JS for calibration/playing state */
+    display: block; /* Visible por defecto, su visualización es controlada por JS */
     width: 100%;
-    max-width: 200px; /* Adjust as needed for desktop */
+    max-width: 200px; /* Ajusta el tamaño de la previsualización de la cámara */
     height: auto;
     border: 2px solid #00ff88;
     border-radius: 4px;
-    transform: scaleX(-1); /* Mirror effect */
+    transform: scaleX(-1); /* Efecto espejo para que se vea como un reflejo */
     object-fit: cover;
-    margin-top: 15px; /* Spacing from canvas */
+    margin-top: 15px; /* Espaciado con el canvas */
     margin-bottom: 10px;
 }
 
-/* Hide the duplicate Start Game button if message overlay is used to start */
+/* Oculta el botón de "Start Game" redundante si el overlay lo gestiona */
 #startBtn.hidden {
     display: none;
 }
@@ -337,7 +348,7 @@ body {
 #leaderboardList {
     list-style: none;
     padding: 0;
-    max-height: 400px; /* Fixed height for leaderboard scroll */
+    max-height: 400px; /* Altura fija para el scroll del leaderboard */
     overflow-y: auto;
 }
 
@@ -345,12 +356,12 @@ body {
     display: flex;
     align-items: center;
     padding: 10px 0;
-    border-bottom: 1px dashed rgba(0, 255, 136, 0.1);
+    border-bottom: 1px dashed rgba(0, 255, 136, 0.1); /* Línea punteada para separar entradas */
     color: #eee;
 }
 
 #leaderboardList li:last-child {
-    border-bottom: none;
+    border-bottom: none; /* Elimina la línea en la última entrada */
 }
 
 .leaderboard-rank {
@@ -358,7 +369,7 @@ body {
     margin-right: 15px;
     color: #00ff88;
     font-size: 0.9em;
-    min-width: 30px;
+    min-width: 30px; /* Ancho mínimo para el número de ranking */
     text-align: right;
 }
 
@@ -391,10 +402,10 @@ body {
 }
 
 .leaderboard-player-name {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 150px; /* Limit name width */
+    white-space: nowrap; /* Evita que el nombre se rompa en varias líneas */
+    overflow: hidden; /* Oculta el texto que se desborda */
+    text-overflow: ellipsis; /* Añade puntos suspensivos al texto desbordado */
+    max-width: 150px; /* Limita el ancho del nombre para que la bandera quepa */
 }
 
 .leaderboard-flag {
@@ -410,39 +421,39 @@ body {
 
 /* Game Over Screen */
 .overlay-container {
-    position: fixed;
+    position: fixed; /* Fijo en la ventana */
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.9);
+    background-color: rgba(0, 0, 0, 0.9); /* Fondo negro muy transparente */
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 1000;
-    visibility: hidden;
-    opacity: 0;
-    transition: visibility 0s, opacity 0.3s ease-in-out;
+    z-index: 1000; /* Asegura que esté por encima de todo */
+    visibility: hidden; /* Oculto por defecto */
+    opacity: 0; /* Transparente por defecto */
+    transition: visibility 0s, opacity 0.3s ease-in-out; /* Transición suave */
 }
 
 .overlay-container.visible {
     visibility: visible;
-    opacity: 1;
+    opacity: 1; /* Se vuelve visible y opaco */
 }
 
 .game-over-box {
     background-color: #2c2c2c;
-    border: 3px solid #ff4444;
+    border: 3px solid #ff4444; /* Borde rojo llamativo */
     border-radius: 10px;
     padding: 30px;
     text-align: center;
     box-shadow: 0 0 25px rgba(255, 68, 68, 0.5);
-    transform: scale(0.9);
-    transition: transform 0.3s ease-out;
+    transform: scale(0.9); /* Empieza un poco más pequeño */
+    transition: transform 0.3s ease-out; /* Animación de entrada */
 }
 
 .overlay-container.visible .game-over-box {
-    transform: scale(1);
+    transform: scale(1); /* Escala normal al volverse visible */
 }
 
 .game-over-box h2 {
@@ -524,7 +535,7 @@ body {
 }
 
 .share-button.twitter {
-    background-color: #1DA1F2;
+    background-color: #1DA1F2; /* Azul de Twitter/X */
     color: white;
 }
 
@@ -534,7 +545,7 @@ body {
 }
 
 .share-button.whatsapp {
-    background-color: #25D366;
+    background-color: #25D366; /* Verde de WhatsApp */
     color: white;
 }
 
@@ -552,7 +563,7 @@ body {
 }
 
 .donation-button {
-    background-color: #FFDD00;
+    background-color: #FFDD00; /* Amarillo para el botón de donación */
     color: #444;
     padding: 10px 20px;
     border-radius: 5px;
@@ -572,47 +583,55 @@ body {
 /* Media Queries for Responsiveness */
 @media (max-width: 900px) {
     .main-content {
-        flex-direction: column;
-        align-items: center;
+        flex-direction: column; /* Apila las columnas una encima de la otra */
+        align-items: center; /* Centra las columnas apiladas */
     }
 
     .game-column, .info-column {
-        width: 100%;
-        max-width: 600px; /* Constraint width on smaller screens */
+        width: 100%; /* Las columnas ocupan todo el ancho disponible */
+        max-width: 600px; /* Mantienen un ancho máximo para no ser demasiado grandes en tabletas */
     }
 
     .page-header h1 {
-        font-size: 1.8em;
+        font-size: 1.8em; /* Reduce el tamaño del título en tabletas */
     }
 
     .game-info {
         font-size: 1em;
+    }
+
+    /* **CLAVE:** En pantallas más pequeñas, el botón de mute vuelve a su posicionamiento normal */
+    .icon-button {
+        position: static; /* Vuelve a su posición en el flujo normal del documento */
+        transform: none; /* Elimina cualquier transformación aplicada */
+        margin-left: auto; /* Lo empuja a la derecha si está dentro de un contenedor flex */
+        padding-right: 0; /* Elimina el padding derecho que tenía en posicionamiento absoluto */
     }
 }
 
 @media (max-width: 600px) {
     .container {
-        padding: 15px;
-        gap: 15px;
+        padding: 15px; /* Reduce el padding del contenedor principal */
+        gap: 15px; /* Reduce el espacio entre elementos */
     }
 
     .page-header h1 {
-        font-size: 1.5em;
+        font-size: 1.5em; /* Reduce aún más el título en móviles */
+    }
+
+    .page-header {
+        flex-direction: column; /* Apila el título y el botón de mute */
+        gap: 10px; /* Espacio entre el título y el botón */
+    }
+
+    .icon-button {
+        margin-left: 0; /* Quita el margen auto si ya se están apilando */
     }
 
     .game-info {
-        flex-direction: column;
+        flex-direction: column; /* Apila los elementos de información del juego */
         align-items: center;
         gap: 5px;
-    }
-
-    #messageText {
-        font-size: 1.5em;
-    }
-
-    #startButton {
-        padding: 10px 20px;
-        font-size: 1em;
     }
 
     .game-over-box h2 {
@@ -625,20 +644,20 @@ body {
     }
 
     .leaderboard-player-name {
-        max-width: 100px; /* Further limit name width on very small screens */
+        max-width: 100px; /* Limita más el ancho del nombre en pantallas muy pequeñas */
     }
 }
 
 @media (max-width: 400px) {
     .page-header h1 {
-        font-size: 1.2em;
+        font-size: 1.2em; /* Aún más pequeño para pantallas extra-pequeñas */
     }
     .game-over-buttons, .share-buttons {
-        flex-direction: column;
+        flex-direction: column; /* Apila los botones de game over y compartir */
         gap: 10px;
     }
     .game-over-buttons button, .share-button {
-        width: 80%; /* Make buttons full width */
-        margin: 0 auto;
+        width: 80%; /* Hace que los botones ocupen la mayor parte del ancho */
+        margin: 0 auto; /* Los centra si están apilados */
     }
 }
