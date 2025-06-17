@@ -19,19 +19,52 @@ body {
   padding: 30px;
   border-radius: 12px;
   box-shadow: 0 0 15px #00ff88aa;
-  max-width: 900px;
+  max-width: 950px; /* Ancho para el layout de 2 columnas */
   width: 95%;
   text-align: center;
   overflow: hidden;
   user-select: none;
 }
 
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 20px 0;
+}
+
+.header-spacer {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+}
+
 h1 {
   font-family: 'Press Start 2P', cursive;
   color: #00ff88;
-  font-size: 2.2rem;
+  font-size: 2rem;
   text-shadow: 0 0 5px #00ff88;
-  margin: 20px 0;
+  margin: 0;
+  flex-grow: 1;
+}
+
+.top-bar {
+    position: static;
+}
+
+.icon-button {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid #555;
+    color: #aaa;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-size: 20px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
 }
 
 #auth-container {
@@ -43,65 +76,20 @@ h1 {
 }
 
 .google-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    background-color: #4285F4;
-    color: white;
-    border: none;
-    padding: 12px 20px;
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 12px; background-color: #4285F4; color: white;
+    border: none; padding: 12px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: background-color 0.2s;
 }
-.google-btn:hover {
-    background-color: #357ae8;
-}
-.google-btn img {
-    width: 20px;
-    height: 20px;
-    background-color: white;
-    border-radius: 2px;
-    padding: 2px;
-}
+.google-btn:hover { background-color: #357ae8; }
+.google-btn img { width: 20px; height: 20px; background-color: white; border-radius: 2px; padding: 2px; }
 
-#userProfile {
-    display: none;
-    flex-direction: column;
-    align-items: center;
-    gap: 15px;
-}
+#userProfile { display: none; flex-direction: column; align-items: center; gap: 15px; }
+.profile-info { display: flex; align-items: center; gap: 12px; font-size: 18px; }
+#userAvatar { width: 45px; height: 45px; border-radius: 50%; border: 2px solid #00ff88; }
+.profile-buttons { display: flex; gap: 10px; align-items: center; }
+#logoutBtn { background-color: #555; color: #eee; font-size: 12px; padding: 5px 10px; margin: 0; }
+#logoutBtn:hover { background-color: #ff4444; }
 
-.profile-info {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 18px;
-}
-
-#userAvatar {
-    width: 45px;
-    height: 45px;
-    border-radius: 50%;
-    border: 2px solid #00ff88;
-}
-
-.profile-buttons {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-}
-
-#logoutBtn {
-    background-color: #555;
-    color: #eee;
-    font-size: 12px;
-    padding: 5px 10px;
-    margin: 0;
-}
-#logoutBtn:hover {
-    background-color: #ff4444;
-}
-
-/* Layout Principal */
 .main-content {
   display: flex;
   justify-content: center;
@@ -132,9 +120,7 @@ h1 {
   border-radius: 8px;
   cursor: grab;
 }
-#gameCanvas:active {
-    cursor: grabbing;
-}
+#gameCanvas:active { cursor: grabbing; }
 
 .game-info {
     display: flex;
@@ -153,277 +139,78 @@ h1 {
   color: #00ff88;
 }
 
-button {
-  padding: 10px 16px;
-  margin: 10px 5px;
-  border: none;
-  border-radius: 6px;
-  font-size: 16px;
-  font-family: 'Poppins', sans-serif;
-  background-color: #00ff88;
-  color: #000;
-  cursor: pointer;
-  font-weight: bold;
-  transition: background-color 0.2s, color 0.2s, transform 0.1s;
-}
+button { padding: 10px 16px; margin: 10px 5px; border: none; border-radius: 6px; font-size: 16px; font-family: 'Poppins', sans-serif; background-color: #00ff88; color: #000; cursor: pointer; font-weight: bold; transition: background-color 0.2s, color 0.2s, transform 0.1s; }
+button:hover { background-color: #00dd77; }
+button:active { transform: scale(0.95); }
+button:disabled { background-color: #555; color: #888; cursor: not-allowed; opacity: 0.6; }
 
-button:hover {
-  background-color: #00dd77;
-}
-
-button:active {
-  transform: scale(0.95);
-}
-
-button:disabled {
-    background-color: #555;
-    color: #888;
-    cursor: not-allowed;
-    opacity: 0.6;
-}
-
-/* Leaderboard styles */
 #leaderboard {
   text-align: left;
   color: #00ff88;
   background-color: #0d0d0d;
   padding: 15px 25px;
   border-radius: 8px;
-  height: 505px;
+  height: 480px;
   overflow-y: auto;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
 }
-
-.leaderboard-header {
-    text-align: center;
-    margin-bottom: 15px;
-    flex-shrink: 0;
-}
-
-.leaderboard-header h2 {
-  font-family: 'Press Start 2P', cursive;
-  font-size: 1.2rem;
-  margin: 0 0 10px 0;
-}
-
-.leaderboard-toggles {
-    display: flex;
-    justify-content: center;
-    background-color: #2c2c2c;
-    border-radius: 8px;
-    padding: 4px;
-}
-
-.toggle-btn {
-    flex-grow: 1;
-    background: none;
-    border: none;
-    color: #888;
-    padding: 8px 10px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-weight: bold;
-    border-radius: 6px;
-    margin: 0;
-}
-
-.toggle-btn.active {
-    background-color: #00ff88;
-    color: #121212;
-    box-shadow: 0 0 10px #00ff8877;
-}
-
-#leaderboardList {
-  padding-left: 0;
-  list-style-type: decimal;
-  list-style-position: inside;
-  margin: 0;
-  overflow-y: auto;
-  flex-grow: 1;
-}
-
+.leaderboard-header { text-align: center; margin-bottom: 15px; flex-shrink: 0; }
+.leaderboard-header h2 { font-family: 'Press Start 2P', cursive; font-size: 1.2rem; margin: 0 0 10px 0; }
+.leaderboard-toggles { display: flex; justify-content: center; background-color: #2c2c2c; border-radius: 8px; padding: 4px; }
+.toggle-btn { flex-grow: 1; background: none; border: none; color: #888; padding: 8px 10px; cursor: pointer; transition: all 0.3s ease; font-weight: bold; border-radius: 6px; margin: 0; }
+.toggle-btn.active { background-color: #00ff88; color: #121212; box-shadow: 0 0 10px #00ff8877; }
+#leaderboardList { padding-left: 0; list-style-type: none; margin: 0; overflow-y: auto; flex-grow: 1; }
 #leaderboardList li {
-    font-size: 0.9rem;
+    padding: 5px 0;
     margin-bottom: 8px;
     display: flex;
     align-items: center;
-    gap: 8px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    gap: 10px;
 }
-
-#leaderboardList li::marker {
-    font-weight: bold;
-    color: #00ff88;
-}
-
-#leaderboardList li img.leaderboard-avatar {
-  width: 25px;
-  height: 25px;
-  border-radius: 50%;
-}
-
-#leaderboardList li img.leaderboard-flag {
-  width: 20px;
-  height: auto;
-  border-radius: 2px;
-  margin: 0 8px 0 4px; /* ¡ESPACIO AÑADIDO! */
-}
-
-/* Overlay de Game Over */
-.overlay-container {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background-color: rgba(0, 0, 0, 0.8);
-  z-index: 10;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.4s, visibility 0.4s;
-}
-
-.overlay-container.visible {
-  opacity: 1;
-  visibility: visible;
-}
-
-.game-over-box {
-  background-color: #1f1f1f;
-  padding: 30px 50px;
-  border-radius: 12px;
-  text-align: center;
-  box-shadow: 0 0 20px #ff4444aa;
-  border: 1px solid #ff4444;
-}
-
-.game-over-buttons {
-    display: flex;
-    justify-content: center;
-    gap: 15px;
-    margin-top: 20px;
-}
-
-.game-over-buttons button {
-    margin: 0;
-}
-
-/* Estilos para compartir */
-.share-section {
-    margin-top: 25px;
-    border-top: 1px solid #444;
-    padding-top: 15px;
-}
-.share-section p {
-    margin: 0 0 10px 0;
-    font-size: 14px;
+#leaderboardList li .leaderboard-rank {
+    font-family: 'Press Start 2P', cursive;
     color: #aaa;
+    width: 30px;
+    flex-shrink: 0;
+    text-align: right;
 }
-.share-buttons {
+#leaderboardList li .leaderboard-entry {
     display: flex;
-    justify-content: center;
-    gap: 15px;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    overflow: hidden;
 }
-.share-button {
-    border: none;
-    border-radius: 5px;
-    padding: 8px 15px;
-    font-size: 14px;
-    font-weight: bold;
-    color: white;
-}
+#leaderboardList li img.leaderboard-avatar { width: 30px; height: 30px; border-radius: 50%; }
+#leaderboardList li .leaderboard-details { display: flex; flex-direction: column; align-items: flex-start; overflow: hidden; text-align: left; }
+.leaderboard-player { display: flex; align-items: center; gap: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; font-size: 0.95rem; font-weight: bold; color: #fff; }
+#leaderboardList li img.leaderboard-flag { width: 20px; height: auto; border-radius: 2px; }
+.leaderboard-stats { font-size: 0.8rem; color: #aaa; }
+.overlay-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; background-color: rgba(0, 0, 0, 0.8); z-index: 10; opacity: 0; visibility: hidden; transition: opacity 0.4s, visibility 0.4s; }
+.overlay-container.visible { opacity: 1; visibility: visible; }
+.game-over-box { background-color: #1f1f1f; padding: 30px 50px; border-radius: 12px; text-align: center; box-shadow: 0 0 20px #ff4444aa; border: 1px solid #ff4444; }
+.game-over-buttons { display: flex; justify-content: center; gap: 15px; margin-top: 20px; }
+.game-over-buttons button { margin: 0; }
+.share-section { margin-top: 25px; border-top: 1px solid #444; padding-top: 15px; }
+.share-section p { margin: 0 0 10px 0; font-size: 14px; color: #aaa; }
+.share-buttons { display: flex; justify-content: center; gap: 15px; }
+.share-button { border: none; border-radius: 5px; padding: 8px 15px; font-size: 14px; font-weight: bold; color: white; }
 .share-button.twitter { background-color: #1DA1F2; }
 .share-button.whatsapp { background-color: #25D366; }
+.page-footer { padding-top: 20px; margin-top: 20px; border-top: 1px solid #333; }
+.donation-button { display: inline-block; padding: 10px 20px; background-color: #FFDD00; color: #000000; text-decoration: none; font-weight: bold; font-family: 'Poppins', sans-serif; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.25); transition: transform 0.2s, box-shadow 0.2s; }
+.donation-button:hover { transform: scale(1.05); box-shadow: 0 6px 15px rgba(0,0,0,0.3); }
+@keyframes flash-red { from { filter: none; } to { filter: brightness(1.75) drop-shadow(0 0 5px #ff4444); } }
+.snake-hit { animation: flash-red 0.1s 4 alternate; }
 
-/* Footer de la página */
-.page-footer {
-    padding-top: 20px;
-    margin-top: auto;
-}
-
-.donation-button {
-    display: inline-block;
-    padding: 10px 20px;
-    background-color: #FFDD00;
-    color: #000000;
-    text-decoration: none;
-    font-weight: bold;
-    font-family: 'Poppins', sans-serif;
-    border-radius: 8px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.25);
-    transition: transform 0.2s, box-shadow 0.2s;
-}
-.donation-button:hover {
-    transform: scale(1.05);
-    box-shadow: 0 6px 15px rgba(0,0,0,0.3);
-}
-
-/* Estilos Misceláneos */
-.top-bar {
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    z-index: 20;
-}
-.icon-button {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid #555;
-    color: #aaa;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    font-size: 20px;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* Animación de muerte */
-@keyframes flash-red {
-    from { filter: none; }
-    to { filter: brightness(1.75) drop-shadow(0 0 5px #ff4444); }
-}
-.snake-hit {
-    animation: flash-red 0.1s 4 alternate;
-}
-
-/* --- ESTILOS PARA TELÉFONOS Y PANTALLAS PEQUEÑAS --- */
 @media (max-width: 920px) {
-  .container {
-    max-width: 100%;
-    width: 100%;
-    padding: 15px 10px;
-    border-radius: 0;
-    min-height: calc(100vh - 20px);
-    box-sizing: border-box;
-  }
-  .main-content {
-    flex-direction: column;
-    align-items: center;
-    gap: 20px;
-  }
-  #leaderboard {
-    width: 100%;
-    box-sizing: border-box;
-    height: auto;
-    max-height: 250px;
-  }
-  h1 {
-    font-size: 1.5rem;
-  }
-  #scoreDisplay, #playCounterDisplay, #timeDisplay {
-    font-size: 0.9rem;
-  }
-  .page-footer {
-    position: relative;
-    margin-top: 20px;
-  }
+  .container { max-width: 100%; width: 100%; padding: 15px 10px; border-radius: 0; min-height: calc(100vh - 20px); box-sizing: border-box; }
+  .page-header { margin: 10px 0; }
+  h1 { font-size: 1.2rem; }
+  .main-content { flex-direction: column; align-items: center; gap: 20px; }
+  #leaderboard { width: 100%; box-sizing: border-box; height: auto; max-height: 250px; }
+  #scoreDisplay, #playCounterDisplay, #timeDisplay { font-size: 0.9rem; }
+  .page-footer { position: relative; margin-top: 20px; }
 }
