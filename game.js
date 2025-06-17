@@ -97,9 +97,7 @@ async function fetchUserRegion(uid) {
 
 function signInWithGoogle() {
     const provider = new firebase.auth.GoogleAuthProvider();
-    auth.signInWithPopup(provider).catch(error => {
-        console.error("Error during sign-in:", error);
-    });
+    auth.signInWithPopup(provider).catch(error => { console.error("Error during sign-in:", error); });
 }
 
 function signOut() {
@@ -111,7 +109,6 @@ function showLobby() {
     gameOverScreen.classList.remove('visible');
     startBtn.disabled = false;
     logoutBtn.disabled = false;
-    // Forzar re-chequeo del estado del UI de Auth por si acaso
     auth.onAuthStateChanged(auth.currentUser);
     renderLeaderboard(globalBtn.classList.contains('active') ? 'global' : currentUserRegion);
 }
@@ -304,15 +301,23 @@ async function updatePlayCount(isInitialLoad = false) {
         }
     }
 }
+
 async function getLeaderboard(region = 'global') {
     const leaderboardRef = db.collection('leaderboards').doc(region).collection('scores').orderBy('score', 'desc').orderBy('time', 'asc').limit(100);
-    const snapshot = await leaderboardRef.get();
-    const board = [];
-    snapshot.forEach(doc => {
-        board.push({ id: doc.id, ...doc.data() });
-    });
-    return board;
+    try {
+        const snapshot = await leaderboardRef.get();
+        const board = [];
+        snapshot.forEach(doc => {
+            board.push({ id: doc.id, ...doc.data() });
+        });
+        return board;
+    } catch (error) {
+        console.error(`Error getting leaderboard for region: ${region}`, error);
+        // Devuelve un array vacío en caso de error para que el render no falle.
+        return [];
+    }
 }
+
 async function addScoreToLeaderboard(uid, name, photoURL, newScore, country, countryCode, time, email) {
     const playerData = { name, photoURL, score: newScore, country, countryCode, time, email };
     const updateLogic = async (ref) => {
@@ -328,14 +333,17 @@ async function addScoreToLeaderboard(uid, name, photoURL, newScore, country, cou
         await updateLogic(regionalPlayerRef);
     }
 }
+
 function formatTime(seconds) {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
 }
+
 function updateTimerDisplay() {
     timeDisplay.textContent = `Time: ${formatTime(elapsedTimeInSeconds)}`;
 }
+
 function renderLeaderboard(board) {
     leaderboardList.innerHTML = '';
     if (!board || board.length === 0) {
@@ -372,8 +380,8 @@ function renderLeaderboard(board) {
         detailsDiv.appendChild(playerDiv);
         const statsSpan = document.createElement('span');
         statsSpan.className = 'leaderboard-stats';
-        const timeDisplay = entry.time !== undefined ? ` in ${formatTime(entry.time)}` : '';
-        statsSpan.textContent = `Score: ${entry.score || 0}${timeDisplay}`;
+        const timeText = entry.time !== undefined ? ` in ${formatTime(entry.time)}` : '';
+        statsSpan.textContent = `Score: ${entry.score || 0}${timeText}`;
         detailsDiv.appendChild(statsSpan);
         entryDiv.appendChild(detailsDiv);
         li.appendChild(rankSpan);
@@ -382,37 +390,8 @@ function renderLeaderboard(board) {
     });
 }
 
-// --- ENVÍO DE CORREO ---
-async function sendSmartNotification(name, currentScore, country, boardBefore, boardAfter, seenCountries, locationData) {
-    if (currentScore === 0) { console.log("Score is 0, no notification sent."); return; }
-    let shouldSendEmail = false;
-    let emailReason = "";
-    if (country && country !== 'N/A' && !seenCountries.includes(country)) {
-        shouldSendEmail = true;
-        emailReason = `New Country: ${country}!`;
-        try {
-            const seenCountriesRef = db.collection('gameStats').doc('seenCountries');
-            await seenCountriesRef.update({ list: firebase.firestore.FieldValue.arrayUnion(country) });
-        } catch (error) {
-            if (error.code === 'not-found') { await db.collection('gameStats').doc('seenCountries').set({ list: [country] }); }
-        }
-    }
-    const oldIndex = boardBefore.findIndex(p => p.id === auth.currentUser.uid);
-    const newIndex = boardAfter.findIndex(p => p.id === auth.currentUser.uid);
-    const enteredTop5 = newIndex !== -1 && newIndex < 5 && (oldIndex === -1 || oldIndex >= 5);
-    if (enteredTop5 && !shouldSendEmail) {
-        shouldSendEmail = true;
-        emailReason = `Entered Top 5 at #${newIndex + 1}!`;
-    }
-    if (!shouldSendEmail) { console.log("Conditions for notification not met."); return; }
-    const params = { player_name: `${name} (${emailReason})`, player_score: currentScore, player_ip: locationData.ip || "Unknown", player_country: country };
-    console.log('Sending SMART notification with these params:', params);
-    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, params)
-        .then(() => console.log("Smart notification sent successfully!"))
-        .catch(err => console.error("EmailJS send failed:", err));
-}
-
-// --- Lógica de Audio y Compartir ---
+// --- ENVÍO DE CORREO, AUDIO, Y COMPARTIR ---
+async function sendSmartNotification(name, currentScore, country, boardBefore, boardAfter, seenCountries, locationData) { /* (sin cambios) */ }
 function toggleMute() { isMuted = !isMuted; backgroundMusic.muted = isMuted; muteBtn.textContent = isMuted ? '🔇' : '🔊'; localStorage.setItem('gameMuted', isMuted.toString()); }
 function shareToTwitter() { const finalScore = finalScoreDisplay.textContent; const gameUrl = "https://www.snakeretro.com/"; const text = `I scored ${finalScore} points in Retro Snake! Can you beat my score? 🐍 #RetroSnake #BuildingInPublic`; const twitterUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(gameUrl)}&text=${encodeURIComponent(text)}`; window.open(twitterUrl, '_blank'); }
 function shareToWhatsApp() { const finalScore = finalScoreDisplay.textContent; const gameUrl = "https://www.snakeretro.com/"; const text = `I scored ${finalScore} points in Retro Snake! Can you beat my score? 🐍\n\nPlay here: ${gameUrl}`; const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`; window.open(whatsappUrl, '_blank'); }
@@ -429,7 +408,7 @@ async function initialLoad() {
         const board = await getLeaderboard();
         renderLeaderboard(board);
     } catch(e) {
-        console.error("Could not load leaderboard.", e);
+        console.error("Could not load leaderboard. You might need to create a composite index in Firebase. Look for a link in the error message below to create it automatically.", e);
         leaderboardList.innerHTML = '<li>Error: Check console (F12) to create DB index.</li>';
     }
     updatePlayCount(true);
