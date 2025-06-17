@@ -43,7 +43,6 @@ body {
     font-size: 2.5em;
     margin: 0; /* Elimina los márgenes por defecto para un centrado más preciso */
     text-align: center; /* Asegura que el texto dentro del h1 esté centrado */
-    /* No se usa flex-grow aquí para que el h1 ocupe solo el espacio necesario y se centre */
 }
 
 /* El header-spacer ya no es necesario para el centrado con los ajustes actuales */
@@ -99,9 +98,13 @@ body {
     transition: background-color 0.3s;
 }
 
-.google-btn img {
-    width: 20px;
+/* **NUEVO/AJUSTADO:** Estilos para el logo de Google */
+.google-btn .google-logo-icon {
+    width: 20px; /* Tamaño pequeño */
     height: 20px;
+    /* Aseguramos que sea visible */
+    display: block;
+    object-fit: contain; /* Asegura que el SVG se ajuste sin distorsión */
 }
 
 .google-btn:hover {
@@ -165,7 +168,6 @@ body {
 }
 
 .game-column {
-    /* **CLAVE:** Eliminar flex: 2; para que no crezca y el justify-content del padre lo centre como un bloque */
     min-width: 300px; /* Ancho mínimo para la columna del juego */
     max-width: 600px; /* Ancho máximo para la columna del juego en escritorio */
     width: 100%; /* Permite que ocupe el 100% del espacio disponible, hasta su max-width */
@@ -199,8 +201,11 @@ body {
     max-width: 600px; /* Ancho máximo para el canvas */
     padding-bottom: 100%; /* Crea una relación de aspecto cuadrada (1:1) */
     height: 0; /* Necesario para que padding-bottom funcione como altura */
-    overflow: hidden; /* Oculta cualquier contenido que se desborde */
+    overflow: hidden; /* **CLAVE para los bordes del canvas:** Oculta cualquier contenido que se desborde */
     margin-bottom: 20px;
+    /* Añadimos explícitamente el border aquí también */
+    border: 2px solid #00ff88; /* **NUEVO/AJUSTADO:** Borde completo en el contenedor del canvas */
+    border-radius: 5px; /* Para que coincida con el border-radius del canvas */
 }
 
 #gameCanvas {
@@ -210,12 +215,14 @@ body {
     width: 100%;
     height: 100%;
     background-color: #2c2c2c;
-    border: 2px solid #00ff88;
+    /* Eliminamos el borde de aquí, ya que lo pondremos en #game-area */
+    /* border: 2px solid #00ff88; */
     border-radius: 5px;
     transition: border-color 0.3s ease-in-out;
 }
 
 #gameCanvas.snake-hit {
+    /* Aquí mantenemos el border-color para el efecto de "hit" */
     border-color: #ff4444; /* Borde rojo cuando la serpiente choca */
 }
 
@@ -271,10 +278,11 @@ body {
 }
 
 /* Camera Preview */
+/* **CLAVE para el espacio muerto:** Por defecto, ocultamos el video para que no ocupe espacio */
 #inputVideo {
-    display: block; /* Visible por defecto, su visualización es controlada por JS */
+    display: none; /* **AJUSTADO:** Oculto por defecto en CSS para que no ocupe espacio muerto */
     width: 100%;
-    max-width: 200px; /* Ajusta el tamaño de la previsualización de la cámara */
+    max-width: 200px;
     height: auto;
     border: 2px solid #00ff88;
     border-radius: 4px;
@@ -282,6 +290,7 @@ body {
     object-fit: cover;
     margin-top: 15px; /* Espaciado con el canvas */
     margin-bottom: 10px;
+    /* La lógica de JS se encargará de poner display: block; cuando la cámara esté activa */
 }
 
 /* Oculta el botón de "Start Game" redundante si el overlay lo gestiona */
