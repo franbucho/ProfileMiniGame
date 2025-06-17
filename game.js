@@ -414,8 +414,8 @@ async function sendSmartNotification(name, currentScore, country, boardBefore, b
 
 // --- Lógica de Audio y Compartir ---
 function toggleMute() { isMuted = !isMuted; backgroundMusic.muted = isMuted; muteBtn.textContent = isMuted ? '🔇' : '🔊'; localStorage.setItem('gameMuted', isMuted.toString()); }
-function shareToTwitter() { const finalScore = finalScoreDisplay.textContent; const gameUrl = "https://franbucho.github.io/ProfileMiniGame/"; const text = `I scored ${finalScore} points in Retro Snake Worldwide! Can you beat my score? 🐍 #RetroSnake #JavaScriptGame`; const twitterUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(gameUrl)}&text=${encodeURIComponent(text)}`; window.open(twitterUrl, '_blank'); }
-function shareToWhatsApp() { const finalScore = finalScoreDisplay.textContent; const gameUrl = "https://franbucho.github.io/ProfileMiniGame/"; const text = `I scored ${finalScore} points in Retro Snake Worldwide! Can you beat my score? 🐍\n\nPlay here: ${gameUrl}`; const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`; window.open(whatsappUrl, '_blank'); }
+function shareToTwitter() { const finalScore = finalScoreDisplay.textContent; const gameUrl = "https://www.snakeretro.com/"; const text = `I scored ${finalScore} points in Retro Snake! Can you beat my score? 🐍 #RetroSnake #BuildingInPublic`; const twitterUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(gameUrl)}&text=${encodeURIComponent(text)}`; window.open(twitterUrl, '_blank'); }
+function shareToWhatsApp() { const finalScore = finalScoreDisplay.textContent; const gameUrl = "https://www.snakeretro.com/"; const text = `I scored ${finalScore} points in Retro Snake! Can you beat my score? 🐍\n\nPlay here: ${gameUrl}`; const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`; window.open(whatsappUrl, '_blank'); }
 
 // --- INICIALIZACIÓN ---
 async function initialLoad() {
