@@ -753,7 +753,7 @@ function toggleMute() {
 
 function shareToTwitter() {
     const finalScore = finalScoreDisplay.textContent;
-    const gameUrl = "https://www.snakeretro.com/"; // Reemplazar con la URL real de tu juego
+    const gameUrl = "www.snakeretro.com; // Reemplazar con la URL real de tu juego
     const text = `I scored ${finalScore} points in Retro Snake! Can you beat my score? 🐍 #RetroSnake #BuildingInPublic`;
     const twitterUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(gameUrl)}&text=${encodeURIComponent(text)}`;
     window.open(twitterUrl, '_blank');
