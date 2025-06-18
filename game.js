@@ -80,29 +80,39 @@ const NOSE_SENSITIVITY = 0.035; // Normalized screen dimension (0-1) for sensiti
 
 // --- Lógica de Autenticación ---
 auth.onAuthStateChanged(async (user) => {
-    // Solo actualiza la UI de auth si el juego NO está activo para evitar parpadeos o conflictos
-    const isGameActive = !!gameInterval || gameState === 'PLAYING'; // gameInterval will be null/undefined when game is not running
-    if (user && !isGameActive) {
+    // Definimos si el juego está activo o en proceso de inicio/calibración
+    const isGameActiveState = (gameState === 'PLAYING' || gameState === 'CALIBRATING' || gameState === 'STARTING_CAMERA' || gameState === 'POST_CALIBRATION_DELAY');
+
+    if (user) {
         loginScreen.style.display = 'none';
-        userProfile.style.display = 'flex'; // Changed to flex for proper layout
+        userProfile.style.display = 'flex';
         userName.textContent = user.displayName;
         userAvatar.src = user.photoURL;
-        // startButton.disabled = false; // El estado de disabled se gestiona por setupCameraAndFaceMesh
+        
         await fetchUserRegion(user.uid);
-        // Si el usuario está logeado y no hay juego activo, mostramos el mensaje inicial del overlay
-        messageOverlay.style.display = 'flex';
-        startButton.style.display = 'block';
-        messageText.textContent = 'Face Control'; // Asegura que el mensaje inicial sea este
-    } else if (!user) {
+
+        // Si el juego NO está en un estado activo (ej: no está jugando, calibrando, etc.)
+        if (!isGameActiveState) {
+            messageOverlay.style.display = 'flex';
+            startButton.style.display = 'block';
+            startButton.disabled = false; // Habilitar el botón de inicio
+            messageText.textContent = 'Face Control'; // Mensaje para iniciar el control facial
+        }
+    } else { // No hay usuario logeado
         userProfile.style.display = 'none';
-        loginScreen.style.display = 'flex'; // Changed to flex for proper layout
-        startButton.disabled = true; // Disable start button in overlay if not signed in
-        regionalBtn.disabled = true;
-        currentUserRegion = null;
-        // Si el usuario no está logeado, siempre mostramos el overlay de inicio de sesión
+        loginScreen.style.display = 'flex';
+        
+        // Siempre mostrar el overlay de inicio de sesión si no está logeado
         messageOverlay.style.display = 'flex';
         startButton.style.display = 'none'; // Ocultar el botón de iniciar juego
+        startButton.disabled = true; // Deshabilitar el botón de inicio
         messageText.textContent = 'Sign in to play!'; // Mensaje para iniciar sesión
+        
+        regionalBtn.disabled = true; // El leaderboard regional requiere inicio de sesión
+        currentUserRegion = null;
+        // Al deslogearse, también detener la cámara y FaceMesh si estaban activas
+        stopCameraAndFaceMesh();
+        gameState = 'INITIAL'; // Resetear el estado del juego
     }
 });
 
@@ -141,23 +151,30 @@ function showLobby() {
     stopCameraAndFaceMesh();
     // Restablecer el estado del juego y el overlay para una nueva calibración
     gameState = 'INITIAL';
-    isCalibrated = false;
+    isCalibrated = false; // Resetear la bandera de calibración
     messageOverlay.style.display = 'flex';
     startButton.style.display = 'block';
+    startButton.disabled = false; // Asegurar que el botón esté habilitado para una nueva partida
     messageText.textContent = 'Face Control'; // Mensaje inicial para una nueva partida
     
-    // Re-enable authentication UI
-    auth.onAuthStateChanged(auth.currentUser);
+    // Re-enable authentication UI (en caso de que estuviera deshabilitada durante el juego)
+    // El onAuthStateChanged se encargará de esto si hay un usuario logeado
+    if (auth.currentUser) {
+        logoutBtn.disabled = false; // Habilitar el botón de logout
+    }
+    
     renderLeaderboard(globalBtn.classList.contains('active') ? 'global' : currentUserRegion);
 }
 
 function startGame() {
     if (!auth.currentUser) {
+        // Mejor usar un modal personalizado en lugar de alert() en producción
+        // Para este entorno de prueba, alert() está bien, pero recordatorio.
         alert("You must be signed in to play.");
         return;
     }
     
-    // Disable auth buttons while game is setting up/running
+    // Deshabilitar botones de autenticación mientras el juego se configura/ejecuta
     logoutBtn.disabled = true;
 
     if (!isMuted && backgroundMusic.paused) {
@@ -173,14 +190,14 @@ function runGame() {
     if (gameTimerInterval) clearInterval(gameTimerInterval);
     
     gameOverScreen.classList.remove('visible');
-    messageOverlay.style.display = 'none'; // Hide overlay when game starts
+    messageOverlay.style.display = 'none'; // Ocultar overlay cuando el juego comienza
     
     elapsedTimeInSeconds = 0;
     updateTimerDisplay();
     
     updatePlayCount();
     resetGame();
-    draw();
+    draw(); // Dibuja el estado inicial del juego
     
     gameTimerInterval = setInterval(() => {
         elapsedTimeInSeconds++;
@@ -191,74 +208,72 @@ function runGame() {
 }
 
 function initiateGameOverSequence() {
-    if (!gameInterval) return;
+    if (!gameInterval) return; // Evitar llamadas duplicadas
     gameOverSound.play();
     clearInterval(gameInterval);
     clearInterval(gameTimerInterval);
-    gameInterval = null; // Clear interval ID
+    gameInterval = null; // Limpiar ID del intervalo
     
-    // **CLAVE:** Detener y reiniciar la cámara y FaceMesh al final de la partida
+    // **CLAVE:** Detener la cámara y FaceMesh al final de la partida
     stopCameraAndFaceMesh();
     
-    canvas.classList.add('snake-hit'); // Add hit effect
+    canvas.classList.add('snake-hit'); // Añadir efecto de "golpe" visual
     setTimeout(() => {
         canvas.classList.remove('snake-hit');
-        // Re-enable authentication UI elements after a short delay
-        logoutBtn.disabled = false;
-        processEndOfGame(); // Handles score submission and leaderboard update
+        logoutBtn.disabled = false; // Re-habilitar botón de logout
+        processEndOfGame(); // Procesar envío de puntuación y actualización de leaderboard
         finalScoreDisplay.textContent = score;
-        gameOverScreen.classList.add('visible'); // Show game over screen
-        gameState = 'GAME_OVER'; // Update game state
-    }, 600);
+        gameOverScreen.classList.add('visible'); // Mostrar pantalla de "Game Over"
+        gameState = 'GAME_OVER'; // Actualizar estado del juego
+    }, 600); // Pequeño retraso para el efecto visual
 }
 
 // Función para detener la cámara y FaceMesh
 function stopCameraAndFaceMesh() {
     if (sendFramesRequestID) {
         cancelAnimationFrame(sendFramesRequestID);
-        sendFramesRequestID = null; // Reset request ID
+        sendFramesRequestID = null; // Reiniciar ID de la solicitud
     }
     if (videoElement.srcObject) {
-        videoElement.srcObject.getTracks().forEach(track => track.stop());
-        videoElement.srcObject = null;
+        videoElement.srcObject.getTracks().forEach(track => track.stop()); // Detener todas las pistas del stream
+        videoElement.srcObject = null; // Limpiar el srcObject
     }
-    videoElement.style.display = 'none'; // Hide the video preview
-    // No reseteamos faceMesh a null, lo reutilizamos.
-    // Simplemente nos aseguramos de que no envíe más frames
+    videoElement.style.display = 'none'; // Ocultar la previsualización del video
+    // No reseteamos faceMesh a null; lo reutilizamos para no tener que crearlo de nuevo
 }
 
 // --- Lógica del Juego ---
 function resetGame() {
     snake = [{ x: Math.floor(gridSize / 2), y: Math.floor(gridSize / 2) }];
     food = { x: Math.floor(Math.random() * gridSize), y: Math.floor(Math.random() * gridSize) };
-    dx = 1; dy = 0; // Initial direction right
+    dx = 1; dy = 0; // Dirección inicial: derecha
     score = 0;
     scoreDisplay.textContent = "Score: 0";
-    currentDirectionString = 'RIGHT'; // Reset facial direction
+    currentDirectionString = 'RIGHT'; // Resetear la dirección de control facial
 }
 
 function draw() {
-    if (!snake) return; // Ensure snake exists
-    ctx.fillStyle = "#2c2c2c";
+    if (!snake) return; // Asegurar que la serpiente exista antes de dibujar
+    ctx.fillStyle = "#2c2c2c"; // Fondo del canvas
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     const cellSize = canvas.width / gridSize;
-    const cornerRadius = gridSize > 25 ? 2 : 4; // Adjust corner radius based on grid size for aesthetic
+    const cornerRadius = gridSize > 25 ? 2 : 4; // Radio de las esquinas para los segmentos de la serpiente
 
-    // Draw food
-    ctx.fillStyle = "#ff4444";
+    // Dibujar la comida
+    ctx.fillStyle = "#ff4444"; // Color rojo para la comida
     ctx.beginPath();
     ctx.arc(food.x * cellSize + cellSize / 2, food.y * cellSize + cellSize / 2, cellSize / 2.2, 0, 2 * Math.PI);
     ctx.fill();
 
-    // Draw snake
+    // Dibujar la serpiente
     snake.forEach((part, index) => {
-        ctx.fillStyle = (index === 0) ? "#00ff88" : "#00dd77"; // Head is brighter green
+        ctx.fillStyle = (index === 0) ? "#00ff88" : "#00dd77"; // Cabeza más brillante
         ctx.beginPath();
-        if (ctx.roundRect) { // Use roundRect if supported for smoother corners
+        if (ctx.roundRect) { // Usar roundRect si está disponible para esquinas redondeadas
             ctx.roundRect(part.x * cellSize, part.y * cellSize, cellSize, cellSize, [cornerRadius]);
             ctx.fill();
-        } else { // Fallback to square for older browsers
+        } else { // Fallback a rectángulos para navegadores antiguos
             ctx.fillRect(part.x * cellSize, part.y * cellSize, cellSize, cellSize);
         }
     });
@@ -267,34 +282,34 @@ function draw() {
 function move() {
     const head = { x: snake[0].x + dx, y: snake[0].y + dy };
 
-    // Check for collisions with walls or self
+    // Detectar colisiones con las paredes o con la propia serpiente
     if (head.x < 0 || head.x >= gridSize || head.y < 0 || head.y >= gridSize || snake.slice(1).some(p => p.x === head.x && p.y === head.y)) {
-        initiateGameOverSequence();
+        initiateGameOverSequence(); // Activar secuencia de fin de juego
         return;
     }
 
-    snake.unshift(head); // Add new head
+    snake.unshift(head); // Añadir nueva cabeza
 
-    // Check if food is eaten
+    // Comprobar si se ha comido la comida
     if (head.x === food.x && head.y === food.y) {
         score += 10;
         eatSound.play();
         scoreDisplay.textContent = `Score: ${score}`;
         
-        // Generate new food position, ensuring it's not on the snake
+        // Generar nueva posición de la comida, asegurándose de que no aparezca sobre la serpiente
         do {
             food = { x: Math.floor(Math.random() * gridSize), y: Math.floor(Math.random() * gridSize) };
         } while (snake.some(p => p.x === food.x && p.y === food.y));
     } else {
-        snake.pop(); // Remove tail if no food eaten
+        snake.pop(); // Si no se come la comida, se quita la cola
     }
 }
 
-// --- Controles ---
+// --- Controles (Teclado y Táctiles) ---
 function handleDirectionChange(newDx, newDy) {
-    if (gameState !== 'PLAYING') return; // Only allow direction changes during active play
+    if (gameState !== 'PLAYING') return; // Solo permitir cambios de dirección durante el juego activo
 
-    // Prevent immediate reverse direction
+    // Evitar el movimiento en dirección opuesta inmediata (ej. ir de derecha a izquierda)
     const goingUp = dy === -1;
     const goingDown = dy === 1;
     const goingRight = dx === 1;
@@ -310,14 +325,14 @@ function handleDirectionChange(newDx, newDy) {
     dx = newDx;
     dy = newDy;
 
-    // Update currentDirectionString for logic using it
+    // Actualizar la cadena de dirección actual
     currentDirectionString = 
         newDx === 0 && newDy === -1 ? 'UP' :
         newDx === 0 && newDy === 1 ? 'DOWN' :
         newDx === -1 && newDy === 0 ? 'LEFT' : 'RIGHT';
 }
 
-// Keyboard controls
+// Controles de teclado
 document.addEventListener('keydown', e => {
     switch (e.key) {
         case 'ArrowUp': handleDirectionChange(0, -1); break;
@@ -327,12 +342,12 @@ document.addEventListener('keydown', e => {
     }
 });
 
-// Touch controls for mobile
+// Controles táctiles para móviles
 canvas.addEventListener('touchstart', (e) => { 
-    e.preventDefault(); // Prevent scrolling
+    e.preventDefault(); // Prevenir el desplazamiento de la página
     touchStartX = e.changedTouches[0].screenX; 
     touchStartY = e.changedTouches[0].screenY; 
-}, { passive: false });
+}, { passive: false }); // `passive: false` para permitir `preventDefault`
 
 canvas.addEventListener('touchend', (e) => { 
     e.preventDefault(); 
@@ -344,13 +359,13 @@ canvas.addEventListener('touchend', (e) => {
 function handleSwipe(endX, endY) {
     const diffX = endX - touchStartX;
     const diffY = endY - touchStartY;
-    const threshold = 30; // Minimum swipe distance
+    const threshold = 30; // Distancia mínima para considerar un deslizamiento
 
-    if (Math.abs(diffX) > Math.abs(diffY)) { // Horizontal swipe
+    if (Math.abs(diffX) > Math.abs(diffY)) { // Deslizamiento horizontal
         if (Math.abs(diffX) > threshold) {
             handleDirectionChange(diffX > 0 ? 1 : -1, 0);
         }
-    } else { // Vertical swipe
+    } else { // Deslizamiento vertical
         if (Math.abs(diffY) > threshold) {
             handleDirectionChange(0, diffY > 0 ? 1 : -1);
         }
@@ -360,64 +375,63 @@ function handleSwipe(endX, endY) {
 // --- Control Facial (MediaPipe FaceMesh) ---
 function onFaceResults(results) {
     if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
-        // No face detected
-        // Consider pausing the game or providing feedback if face tracking is lost during gameplay
+        // Si no se detecta una cara, podemos considerar pausar el juego o dar feedback
         if (gameState === 'PLAYING') {
-             // messageText.textContent = 'Face Lost! Re-center.'; // Example feedback
+             // messageText.textContent = 'Face Lost! Re-center.'; // Ejemplo de feedback
              // messageOverlay.style.display = 'flex';
-             // You might want to pause gameInterval here if desired
+             // Aquí podrías pausar `gameInterval` si quieres que el juego se detenga
         }
         return;
     }
 
     const landmarks = results.multiFaceLandmarks[0];
-    const noseTip = landmarks[4]; // Index 4 is typically the nose tip
+    const noseTip = landmarks[4]; // El índice 4 es típicamente la punta de la nariz
 
-    if (!noseTip) return; // Ensure nose tip is detected
+    if (!noseTip) return; // Asegurarse de que la punta de la nariz sea detectada
 
-    const noseX = noseTip.x; // Normalized X coordinate (0 to 1)
-    const noseY = noseTip.y; // Normalized Y coordinate (0 to 1)
+    const noseX = noseTip.x; // Coordenada X normalizada (0 a 1)
+    const noseY = noseTip.y; // Coordenada Y normalizada (0 a 1)
 
     if (gameState === 'CALIBRATING' && !isCalibrated) {
         calibratedNose = { x: noseX, y: noseY };
         isCalibrated = true;
         gameState = 'POST_CALIBRATION_DELAY';
         messageText.textContent = 'Calibrated! Get Ready...';
-        messageOverlay.style.display = 'flex'; // Ensure overlay is visible during countdown
+        messageOverlay.style.display = 'flex'; // Asegurar que el overlay sea visible durante la cuenta regresiva
 
         setTimeout(() => {
-            if (gameState === 'POST_CALIBRATION_DELAY') { // Only proceed if state hasn't changed
+            if (gameState === 'POST_CALIBRATION_DELAY') { // Solo proceder si el estado no ha cambiado
                 gameState = 'PLAYING';
-                messageOverlay.style.display = 'none'; // Hide overlay
-                runGame(); // Start the actual game loop
+                messageOverlay.style.display = 'none'; // Ocultar overlay
+                runGame(); // Iniciar el bucle del juego
             }
-        }, 1500); // 1.5 second countdown after calibration
+        }, 1500); // Cuenta regresiva de 1.5 segundos después de la calibración
     } else if (gameState === 'PLAYING' && isCalibrated) {
-        const diffX = noseX - calibratedNose.x; // Positive: nose moved right on raw frame (camera's perspective)
-        const diffY = noseY - calibratedNose.y; // Positive: nose moved down on raw frame (camera's perspective)
+        const diffX = noseX - calibratedNose.x; // Positivo: nariz se movió a la derecha en el frame (vista de la cámara)
+        const diffY = noseY - calibratedNose.y; // Positivo: nariz se movió hacia abajo en el frame (vista de la cámara)
 
-        // Since the video is mirrored (transform: scaleX(-1)),
-        // a physical head movement to the RIGHT makes the noseX DECREASE relative to the *mirrored* calibration.
-        // And a physical head movement to the LEFT makes the noseX INCREASE relative to the *mirrored* calibration.
-        // Therefore, for snake control:
-        // If diffX is positive (nose moves right on screen), it means player moved head LEFT -> Snake moves LEFT
-        // If diffX is negative (nose moves left on screen), it means player moved head RIGHT -> Snake moves RIGHT
+        // Debido a que el video está espejado (transform: scaleX(-1)),
+        // un movimiento físico de la cabeza hacia la DERECHA hace que noseX DISMINUYA en relación a la calibración espejada.
+        // Y un movimiento físico de la cabeza hacia la IZQUIERDA hace que noseX AUMENTE en relación a la calibración espejada.
+        // Por lo tanto, para el control de la serpiente:
+        // Si diffX es positivo (nariz se mueve a la derecha en pantalla), significa que el jugador movió la cabeza a la IZQUIERDA -> La serpiente se mueve a la IZQUIERDA
+        // Si diffX es negativo (nariz se mueve a la izquierda en pantalla), significa que el jugador movió la cabeza a la DERECHA -> La serpiente se mueve a la DERECHA
 
-        // Similarly for Y, diffY positive (nose moves down on screen) -> player moved head DOWN -> Snake moves DOWN
-        // diffY negative (nose moves up on screen) -> player moved head UP -> Snake moves UP
+        // Similarmente para Y: diffY positivo (nariz se mueve hacia abajo en pantalla) -> jugador movió la cabeza hacia ABAJO -> La serpiente se mueve hacia ABAJO
+        // diffY negativo (nariz se mueve hacia arriba en pantalla) -> jugador movió la cabeza hacia ARRIBA -> La serpiente se mueve hacia ARRIBA
 
-        // Horizontal movement has priority if deviation is larger or similar
-        if (Math.abs(diffX) > Math.abs(diffY) + 0.01) { // Added a small buffer
-            if (diffX > NOSE_SENSITIVITY && currentDirectionString !== 'RIGHT') { // Player moved head LEFT
-                handleDirectionChange(-1, 0); // Snake goes LEFT
-            } else if (diffX < -NOSE_SENSITIVITY && currentDirectionString !== 'LEFT') { // Player moved head RIGHT
-                handleDirectionChange(1, 0); // Snake goes RIGHT
+        // El movimiento horizontal tiene prioridad si la desviación es mayor o similar
+        if (Math.abs(diffX) > Math.abs(diffY) + 0.01) { // Pequeño buffer para priorizar movimientos claros
+            if (diffX > NOSE_SENSITIVITY && currentDirectionString !== 'RIGHT') { // Jugador movió la cabeza IZQUIERDA
+                handleDirectionChange(-1, 0); // Serpiente va a la IZQUIERDA
+            } else if (diffX < -NOSE_SENSITIVITY && currentDirectionString !== 'LEFT') { // Jugador movió la cabeza DERECHA
+                handleDirectionChange(1, 0); // Serpiente va a la DERECHA
             }
-        } else if (Math.abs(diffY) > Math.abs(diffX) + 0.01) { // Vertical movement priority
-            if (diffY < -NOSE_SENSITIVITY && currentDirectionString !== 'DOWN') { // Player moved head UP
-                handleDirectionChange(0, -1); // Snake goes UP
-            } else if (diffY > NOSE_SENSITIVITY && currentDirectionString !== 'UP') { // Player moved head DOWN
-                handleDirectionChange(0, 1); // Snake goes DOWN
+        } else if (Math.abs(diffY) > Math.abs(diffX) + 0.01) { // Prioridad al movimiento vertical
+            if (diffY < -NOSE_SENSITIVITY && currentDirectionString !== 'DOWN') { // Jugador movió la cabeza ARRIBA
+                handleDirectionChange(0, -1); // Serpiente va ARRIBA
+            } else if (diffY > NOSE_SENSITIVITY && currentDirectionString !== 'UP') { // Jugador movió la cabeza ABAJO
+                handleDirectionChange(0, 1); // Serpiente va ABAJO
             }
         }
     }
@@ -429,11 +443,11 @@ async function processVideoFrame() {
             await faceMesh.send({ image: videoElement });
         } catch (error) {
             console.error("Error sending frame to FaceMesh:", error);
-            // Consider stopping the camera or showing an error to the user if this happens repeatedly
+            // Aquí podrías añadir lógica para manejar errores de procesamiento de FaceMesh
         }
     }
-    // Continue processing frames only if game state is not INITIAL or GAME_OVER
-    // This ensures requestAnimationFrame is not endlessly called when camera is off
+    // Continuar procesando frames solo si el estado del juego NO es INITIAL o GAME_OVER
+    // Esto asegura que requestAnimationFrame no se llame indefinidamente cuando la cámara está apagada
     if (gameState !== 'INITIAL' && gameState !== 'GAME_OVER') {
         sendFramesRequestID = requestAnimationFrame(processVideoFrame);
     } else {
@@ -447,34 +461,39 @@ async function processVideoFrame() {
 async function setupCameraAndFaceMesh() {
     gameState = 'STARTING_CAMERA';
     messageText.textContent = 'Starting camera...';
-    startButton.style.display = 'none'; // Hide the start button while camera initializes
-    messageOverlay.style.display = 'flex'; // Show overlay with message
+    startButton.style.display = 'none'; // Ocultar el botón de inicio mientras la cámara se inicializa
+    messageOverlay.style.display = 'flex'; // Mostrar overlay con mensaje
     
-    // Ensure camera stream is stopped before attempting to start a new one
+    // Asegurar que el stream de la cámara anterior esté detenido antes de intentar iniciar uno nuevo
     stopCameraAndFaceMesh(); 
 
     try {
-        // Request access to the user's camera
+        console.log("Intentando obtener acceso a la cámara...");
         const stream = await navigator.mediaDevices.getUserMedia({
             video: { 
-                width: { ideal: 320 }, // Optimized for performance
+                width: { ideal: 320 }, // Optimizado para rendimiento
                 height: { ideal: 240 },
-                facingMode: 'user' // Prefer front camera
+                facingMode: 'user' // Preferir la cámara frontal
             }
         });
         videoElement.srcObject = stream;
-        videoElement.style.display = 'block'; // Show the video preview
+        videoElement.style.display = 'block'; // Mostrar la previsualización del video
 
-        // Initialize FaceMesh if not already done
-        if (!window.FaceMesh) {
+        // **AJUSTADO CLAVE:** Esperar a que el elemento de video realmente comience a reproducirse
+        await videoElement.play(); // Esto resuelve cuando el media se ha cargado y la reproducción ha comenzado
+
+        console.log("Stream de cámara cargado y reproduciéndose. Inicializando FaceMesh...");
+
+        // Inicializar FaceMesh si aún no se ha hecho
+        if (!window.FaceMesh) { // Comprobar si la librería FaceMesh está cargada globalmente
             messageText.textContent = 'Error: FaceMesh library not loaded. Check CDN link.';
             console.error('FaceMesh library not loaded.');
             gameState = 'INITIAL';
-            startButton.style.display = 'block'; // Show start button again
+            startButton.style.display = 'block'; // Mostrar botón de inicio de nuevo
             return;
         }
 
-        if (!faceMesh) { // Only create new FaceMesh instance if it doesn't exist
+        if (!faceMesh) { // Solo crear una nueva instancia de FaceMesh si no existe
             faceMesh = new FaceMesh({
                 locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
             });
@@ -488,21 +507,20 @@ async function setupCameraAndFaceMesh() {
             faceMesh.onResults(onFaceResults);
         }
 
-        // Wait for video metadata to load before processing frames
-        videoElement.onloadedmetadata = () => {
-            processVideoFrame(); // Start processing video frames for face detection
-            gameState = 'CALIBRATING'; // Move to calibration state
-            isCalibrated = false; // Reset calibration status for new calibration
-            messageText.textContent = 'Look straight at the camera to calibrate.'; // Prompt user
-        };
+        // Iniciar directamente el procesamiento de frames y la transición al estado de calibración
+        // Ya no dependemos de videoElement.onloadedmetadata, ya que `videoElement.play()` garantiza que esté listo.
+        processVideoFrame(); 
+        gameState = 'CALIBRATING';
+        isCalibrated = false; // Resetear el estado de calibración para la nueva partida
+        messageText.textContent = 'Look straight at the camera to calibrate.'; // Mensaje al usuario para calibrar
 
     } catch (err) {
-        console.error("Failed to access camera or setup FaceMesh:", err);
+        console.error("Fallo al acceder a la cámara o configurar FaceMesh:", err);
         messageText.textContent = 'Error: Camera access denied or not available. Allow permission & refresh.';
-        startButton.style.display = 'block'; // Show start button to allow retry
-        messageOverlay.style.display = 'flex'; // Keep overlay visible
-        gameState = 'INITIAL'; // Reset state
-        videoElement.style.display = 'none'; // Hide the video element
+        startButton.style.display = 'block'; // Mostrar botón de inicio para reintentar
+        messageOverlay.style.display = 'flex'; // Mantener el overlay visible
+        gameState = 'INITIAL'; // Resetear el estado
+        videoElement.style.display = 'none'; // Ocultar el elemento de video
     }
 }
 
@@ -510,7 +528,7 @@ async function setupCameraAndFaceMesh() {
 // --- Lógica Central de Fin de Partida ---
 async function processEndOfGame() {
     const user = auth.currentUser;
-    if (!user) return; // Must be logged in to process game end
+    if (!user) return; // Debe estar logeado para procesar el fin del juego
 
     const { displayName: name, uid, photoURL, email } = user;
     const currentScore = score;
@@ -518,10 +536,10 @@ async function processEndOfGame() {
     let locationData;
 
     try {
-        const response = await fetch('https://ipapi.co/json/'); // Fetch IP-based location
+        const response = await fetch('https://ipapi.co/json/'); // Obtener ubicación basada en IP
         locationData = response.ok ? await response.json() : { country_name: 'N/A', country_code: 'N/A', ip: 'N/A' };
     } catch (error) {
-        console.warn('IP lookup failed.', error);
+        console.warn('Fallo en la búsqueda de IP.', error);
         locationData = { country_name: 'N/A', country_code: 'N/A', ip: 'N/A' };
     }
 
@@ -530,18 +548,18 @@ async function processEndOfGame() {
 
     if (countryCode && countryCode !== 'N/A') {
         currentUserRegion = countryCode.toLowerCase();
-        localStorage.setItem('userRegion', currentUserRegion); // Save user's region
-        regionalBtn.disabled = false; // Enable regional leaderboard button
+        localStorage.setItem('userRegion', currentUserRegion); // Guardar la región del usuario
+        regionalBtn.disabled = false; // Habilitar el botón del leaderboard regional
     }
 
-    const boardBeforeUpdate = await getLeaderboard(); // Get global leaderboard before update
-    // Fetch seen countries for smart notification logic
+    const boardBeforeUpdate = await getLeaderboard(); // Obtener leaderboard global antes de la actualización
+    // Obtener países vistos para la lógica de notificación inteligente
     const seenCountriesDoc = await db.collection('gameStats').doc('seenCountries').get();
     const seenCountries = seenCountriesDoc.exists ? seenCountriesDoc.data().list : [];
 
     await addScoreToLeaderboard(uid, name, photoURL, currentScore, country, countryCode, time, email);
 
-    // Render leaderboard based on the currently active tab (global or regional)
+    // Renderizar el leaderboard según la pestaña activa (global o regional)
     const regionToDisplay = regionalBtn.classList.contains('active') && currentUserRegion ? currentUserRegion : 'global';
     const updatedBoard = await getLeaderboard(regionToDisplay);
     renderLeaderboard(updatedBoard);
@@ -553,20 +571,20 @@ async function processEndOfGame() {
 async function updatePlayCount(isInitialLoad = false) {
     const counterRef = db.collection('gameStats').doc('playCounter');
     try {
-        if (!isInitialLoad) { // Increment only if it's not the initial page load
+        if (!isInitialLoad) { // Incrementar solo si no es la carga inicial de la página
             await counterRef.update({ count: firebase.firestore.FieldValue.increment(1) });
         }
         const doc = await counterRef.get();
         const count = doc.exists ? doc.data().count : 0;
         playCounterDisplay.textContent = `Plays: ${count.toLocaleString('en-US')}`;
     } catch (error) {
-        if (error.code === 'not-found') { // If document doesn't exist, create it
+        if (error.code === 'not-found') { // Si el documento no existe, crearlo
             const startCount = isInitialLoad ? 0 : 1;
             await counterRef.set({ count: startCount });
             playCounterDisplay.textContent = `Plays: ${startCount}`;
         } else {
             console.error("Error with play counter:", error);
-            playCounterDisplay.textContent = 'Plays: N/A'; // Show error if something goes wrong
+            playCounterDisplay.textContent = 'Plays: N/A'; // Mostrar error si algo falla
         }
     }
 }
@@ -584,20 +602,20 @@ async function getLeaderboard(region = 'global') {
 async function addScoreToLeaderboard(uid, name, photoURL, newScore, country, countryCode, time, email) {
     const playerData = { name, photoURL, score: newScore, country, countryCode, time, email };
 
-    // Helper function to update a specific leaderboard (global or regional)
+    // Función auxiliar para actualizar un leaderboard específico (global o regional)
     const updateLogic = async (ref) => {
         const doc = await ref.get();
-        // Update if new score is higher, or if score is same but time is faster
+        // Actualizar si la nueva puntuación es mayor, o si la puntuación es la misma pero el tiempo es menor (más rápido)
         if (!doc.exists || newScore > doc.data().score || (newScore === doc.data().score && time < doc.data().time)) {
             await ref.set(playerData);
         }
     };
 
-    // Update global leaderboard
+    // Actualizar leaderboard global
     const globalPlayerRef = db.collection('leaderboards').doc('global').collection('scores').doc(uid);
     await updateLogic(globalPlayerRef);
 
-    // Update regional leaderboard if country code is available
+    // Actualizar leaderboard regional si el código de país está disponible
     if (countryCode && countryCode !== 'N/A') {
         const regionalPlayerRef = db.collection('leaderboards').doc(countryCode.toLowerCase()).collection('scores').doc(uid);
         await updateLogic(regionalPlayerRef);
@@ -615,7 +633,7 @@ function updateTimerDisplay() {
 }
 
 function renderLeaderboard(board) {
-    leaderboardList.innerHTML = ''; // Clear current list
+    leaderboardList.innerHTML = ''; // Limpiar la lista actual
     if (!board || board.length === 0) {
         leaderboardList.innerHTML = '<li>No scores yet.</li>';
         return;
@@ -633,7 +651,7 @@ function renderLeaderboard(board) {
 
         const playerImg = document.createElement('img');
         playerImg.className = 'leaderboard-avatar';
-        playerImg.src = entry.photoURL || 'https://i.imgur.com/sC5gU4e.png'; // Default avatar
+        playerImg.src = entry.photoURL || 'https://i.imgur.com/sC5gU4e.png'; // Avatar por defecto
         entryDiv.appendChild(playerImg);
 
         const detailsDiv = document.createElement('div');
@@ -647,7 +665,7 @@ function renderLeaderboard(board) {
         nameSpan.textContent = entry.name || 'Anonymous';
         playerDiv.appendChild(nameSpan);
 
-        // Add flag if country code is available and valid
+        // Añadir bandera si el código de país está disponible y es válido
         if (entry.countryCode && entry.countryCode !== 'N/A' && entry.countryCode.length === 2) {
             const flagImg = document.createElement('img');
             flagImg.className = 'leaderboard-flag';
@@ -674,21 +692,21 @@ function renderLeaderboard(board) {
 
 // --- ENVÍO DE CORREO (EmailJS) ---
 async function sendSmartNotification(name, currentScore, country, boardBefore, boardAfter, seenCountries, locationData) {
-    if (currentScore === 0) { console.log("Score is 0, no notification sent."); return; } // Don't notify for 0 scores
+    if (currentScore === 0) { console.log("Score is 0, no notification sent."); return; } // No notificar si la puntuación es 0
 
     let shouldSendEmail = false;
     let emailReason = "";
 
-    // 1. New Country Reached
+    // 1. Nuevo País Alcanzado
     if (country && country !== 'N/A' && !seenCountries.includes(country)) {
         shouldSendEmail = true;
         emailReason = `New Country: ${country}!`;
         try {
-            // Add new country to seen countries list
+            // Añadir nuevo país a la lista de países vistos
             const seenCountriesRef = db.collection('gameStats').doc('seenCountries');
             await seenCountriesRef.update({ list: firebase.firestore.FieldValue.arrayUnion(country) });
         } catch (error) {
-            if (error.code === 'not-found') { // If the document doesn't exist, create it
+            if (error.code === 'not-found') { // Si el documento no existe, crearlo
                 await db.collection('gameStats').doc('seenCountries').set({ list: [country] });
             } else {
                 console.error("Error updating seenCountries:", error);
@@ -696,18 +714,18 @@ async function sendSmartNotification(name, currentScore, country, boardBefore, b
         }
     }
 
-    // 2. Entered Top 5 (Global)
+    // 2. Entró en el Top 5 (Global)
     const oldIndex = boardBefore.findIndex(p => p.id === auth.currentUser.uid);
     const newIndex = boardAfter.findIndex(p => p.id === auth.currentUser.uid);
     const enteredTop5 = newIndex !== -1 && newIndex < 5 && (oldIndex === -1 || oldIndex >= 5);
 
-    if (enteredTop5 && !shouldSendEmail) { // If not already sending for new country
+    if (enteredTop5 && !shouldSendEmail) { // Si aún no se envía por nuevo país
         shouldSendEmail = true;
         emailReason = `Entered Top 5 at #${newIndex + 1}!`;
     }
 
     if (!shouldSendEmail) {
-        console.log("Conditions for notification not met.");
+        console.log("Condiciones para la notificación no cumplidas.");
         return;
     }
 
@@ -718,10 +736,10 @@ async function sendSmartNotification(name, currentScore, country, boardBefore, b
         player_country: country
     };
 
-    console.log('Sending SMART notification with these params:', params);
+    console.log('Enviando notificación inteligente con estos parámetros:', params);
     emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, params)
-        .then(() => console.log("Smart notification sent successfully!"))
-        .catch(err => console.error("EmailJS send failed:", err));
+        .then(() => console.log("Notificación inteligente enviada con éxito!"))
+        .catch(err => console.error("Fallo de envío de EmailJS:", err));
 }
 
 // --- Lógica de Audio y Compartir ---
@@ -729,12 +747,12 @@ function toggleMute() {
     isMuted = !isMuted;
     backgroundMusic.muted = isMuted;
     muteBtn.textContent = isMuted ? '🔇' : '🔊';
-    localStorage.setItem('gameMuted', isMuted.toString()); // Save mute state
+    localStorage.setItem('gameMuted', isMuted.toString()); // Guardar estado de mute
 }
 
 function shareToTwitter() {
     const finalScore = finalScoreDisplay.textContent;
-    const gameUrl = "https://www.snakeretro.com/"; // Replace with your actual game URL
+    const gameUrl = "https://www.snakeretro.com/"; // Reemplazar con la URL real de tu juego
     const text = `I scored ${finalScore} points in Retro Snake! Can you beat my score? 🐍 #RetroSnake #BuildingInPublic`;
     const twitterUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(gameUrl)}&text=${encodeURIComponent(text)}`;
     window.open(twitterUrl, '_blank');
@@ -742,7 +760,7 @@ function shareToTwitter() {
 
 function shareToWhatsApp() {
     const finalScore = finalScoreDisplay.textContent;
-    const gameUrl = "https://www.snakeretro.com/"; // Replace with your actual game URL
+    const gameUrl = "https://www.snakeretro.com/"; // Reemplazar con la URL real de tu juego
     const text = `I scored ${finalScore} points in Retro Snake! Can you beat my score? 🐍\n\nPlay here: ${gameUrl}`;
     const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
     window.open(whatsappUrl, '_blank');
@@ -750,14 +768,14 @@ function shareToWhatsApp() {
 
 // --- INICIALIZACIÓN ---
 async function initialLoad() {
-    // Set canvas dimensions
+    // Establecer dimensiones del canvas
     const gameArea = document.getElementById('game-area');
-    // Consider using a fixed aspect ratio or max size relative to viewport width/height
+    // Usar un tamaño que se adapte al ancho disponible y a una parte del alto de la ventana
     const size = Math.min(gameArea.clientWidth, window.innerHeight * 0.6); 
     canvas.width = size;
     canvas.height = size;
 
-    // Load saved mute state
+    // Cargar estado de mute guardado
     const savedMuteState = localStorage.getItem('gameMuted');
     if (savedMuteState === 'true') {
         isMuted = true;
@@ -765,34 +783,27 @@ async function initialLoad() {
         muteBtn.textContent = '🔇';
     }
 
-    // Load and render initial leaderboard
+    // Cargar y renderizar el leaderboard inicial
     try {
         const board = await getLeaderboard();
         renderLeaderboard(board);
     } catch(e) {
-        console.error("Could not load leaderboard. Make sure Firestore security rules and indexes are set up.", e);
-        leaderboardList.innerHTML = '<li>Error: Could not load leaderboard. Check console (F12) for details.</li>';
+        console.error("No se pudo cargar el leaderboard. Asegúrate de que las reglas de seguridad e índices de Firestore estén configurados.", e);
+        leaderboardList.innerHTML = '<li>Error: No se pudo cargar el leaderboard. Revisa la consola (F12) para más detalles.</li>';
     }
     
-    // Update total play count on initial load
-    updatePlayCount(true); // Pass true to not increment on first load
+    // Actualizar el contador de partidas totales en la carga inicial
+    updatePlayCount(true); // Pasar `true` para no incrementar en la primera carga
     
-    // Display initial message overlay. Auth state listener will handle button visibility.
-    messageOverlay.style.display = 'flex';
-    if (auth.currentUser) { // If already signed in on load
-        startButton.style.display = 'block';
-        messageText.textContent = 'Face Control';
-    } else { // If not signed in on load
-        startButton.style.display = 'none';
-        messageText.textContent = 'Sign in to play!';
-    }
+    // La lógica de `auth.onAuthStateChanged` manejará la visibilidad inicial del overlay y el botón de inicio
+    // basándose en si un usuario está logeado.
 }
 
 // Event Listeners
 loginBtn.addEventListener('click', signInWithGoogle);
 logoutBtn.addEventListener('click', signOut);
-startButton.addEventListener('click', startGame); // Use the button inside the overlay
-playAgainBtn.addEventListener('click', startGame); // **AJUSTADO:** playAgainBtn ahora también llama a startGame para recalibrar
+startButton.addEventListener('click', startGame); // El botón dentro del overlay
+playAgainBtn.addEventListener('click', startGame); // **AJUSTADO:** playAgainBtn también llama a startGame para recalibrar
 lobbyBtn.addEventListener('click', showLobby);
 muteBtn.addEventListener('click', toggleMute);
 twitterShareBtn.addEventListener('click', shareToTwitter);
@@ -806,7 +817,7 @@ globalBtn.addEventListener('click', async () => {
 
 regionalBtn.addEventListener('click', async () => {
     if (regionalBtn.disabled) { 
-        alert("You need to play a game first for your region to be detected and stored."); 
+        alert("Necesitas jugar una partida primero para que tu región sea detectada y guardada."); 
         return; 
     }
     const region = currentUserRegion || localStorage.getItem('userRegion');
@@ -815,18 +826,18 @@ regionalBtn.addEventListener('click', async () => {
         regionalBtn.classList.add('active');
         renderLeaderboard(await getLeaderboard(region));
     } else {
-        alert("Your region is not set yet. Play a game first to enable regional leaderboard.");
+        alert("Tu región aún no está configurada. Juega una partida primero para habilitar el leaderboard regional.");
     }
 });
 
-// Initialize the game when the DOM is fully loaded
+// Inicializar el juego cuando el DOM esté completamente cargado
 document.addEventListener('DOMContentLoaded', initialLoad);
 
-// Adjust canvas size on window resize
+// Ajustar el tamaño del canvas al redimensionar la ventana
 window.addEventListener('resize', () => {
     const gameArea = document.getElementById('game-area');
     const size = Math.min(gameArea.clientWidth, window.innerHeight * 0.6);
     canvas.width = size;
     canvas.height = size;
-    draw(); // Redraw snake and food in new canvas size
+    draw(); // Redibujar la serpiente y la comida con el nuevo tamaño del canvas
 });
