@@ -72,29 +72,37 @@ let currentUserRegion = null;
 let direction = { dx: 1, dy: 0 }; // Initial direction: RIGHT
 let currentDirectionString = 'RIGHT';
 let calibratedNose = { x: 0.5, y: 0.5 };
-let isCalibrated = false;
+let isCalibrated = false; // Flag to track if calibration is done
 let gameState = 'INITIAL'; // INITIAL, STARTING_CAMERA, CALIBRATING, POST_CALIBRATION_DELAY, PLAYING, GAME_OVER
 let gameLoopTimeoutId; // To manage game loop for FaceMesh
-let faceMesh;
 let sendFramesRequestID; // To manage requestAnimationFrame for video processing
 const NOSE_SENSITIVITY = 0.035; // Normalized screen dimension (0-1) for sensitivity
 
 // --- Lógica de Autenticación ---
 auth.onAuthStateChanged(async (user) => {
-    const isGameActive = !!gameInterval; // Check if game is currently running
+    // Solo actualiza la UI de auth si el juego NO está activo para evitar parpadeos o conflictos
+    const isGameActive = !!gameInterval || gameState === 'PLAYING'; // gameInterval will be null/undefined when game is not running
     if (user && !isGameActive) {
         loginScreen.style.display = 'none';
         userProfile.style.display = 'flex'; // Changed to flex for proper layout
         userName.textContent = user.displayName;
         userAvatar.src = user.photoURL;
-        startButton.disabled = false; // Enable start button in overlay
+        // startButton.disabled = false; // El estado de disabled se gestiona por setupCameraAndFaceMesh
         await fetchUserRegion(user.uid);
+        // Si el usuario está logeado y no hay juego activo, mostramos el mensaje inicial del overlay
+        messageOverlay.style.display = 'flex';
+        startButton.style.display = 'block';
+        messageText.textContent = 'Face Control'; // Asegura que el mensaje inicial sea este
     } else if (!user) {
         userProfile.style.display = 'none';
         loginScreen.style.display = 'flex'; // Changed to flex for proper layout
-        startButton.disabled = true; // Disable start button in overlay
+        startButton.disabled = true; // Disable start button in overlay if not signed in
         regionalBtn.disabled = true;
         currentUserRegion = null;
+        // Si el usuario no está logeado, siempre mostramos el overlay de inicio de sesión
+        messageOverlay.style.display = 'flex';
+        startButton.style.display = 'none'; // Ocultar el botón de iniciar juego
+        messageText.textContent = 'Sign in to play!'; // Mensaje para iniciar sesión
     }
 });
 
@@ -128,19 +136,16 @@ function signOut() {
 // --- Funciones de Flujo del Juego ---
 function showLobby() {
     gameOverScreen.classList.remove('visible');
-    messageOverlay.style.display = 'flex'; // Show the overlay
-    startButton.style.display = 'block'; // Ensure the start button is visible in overlay
-    messageText.textContent = 'Face Snake!'; // Reset overlay text
     
-    // Stop camera and FaceMesh processing when returning to lobby
-    if (videoElement.srcObject) {
-        videoElement.srcObject.getTracks().forEach(track => track.stop());
-        videoElement.srcObject = null;
-    }
-    videoElement.style.display = 'none'; // Hide the video preview
-    if (sendFramesRequestID) cancelAnimationFrame(sendFramesRequestID);
-    gameState = 'INITIAL'; // Reset game state
-
+    // **CLAVE:** Detener y reiniciar la cámara y FaceMesh al volver al lobby
+    stopCameraAndFaceMesh();
+    // Restablecer el estado del juego y el overlay para una nueva calibración
+    gameState = 'INITIAL';
+    isCalibrated = false;
+    messageOverlay.style.display = 'flex';
+    startButton.style.display = 'block';
+    messageText.textContent = 'Face Control'; // Mensaje inicial para una nueva partida
+    
     // Re-enable authentication UI
     auth.onAuthStateChanged(auth.currentUser);
     renderLeaderboard(globalBtn.classList.contains('active') ? 'global' : currentUserRegion);
@@ -159,6 +164,7 @@ function startGame() {
         backgroundMusic.play().catch(e => console.error("Audio autoplay was blocked by browser.", e));
     }
     
+    // **CLAVE:** Siempre iniciar setup de cámara para recalibración
     setupCameraAndFaceMesh();
 }
 
@@ -191,13 +197,8 @@ function initiateGameOverSequence() {
     clearInterval(gameTimerInterval);
     gameInterval = null; // Clear interval ID
     
-    // Stop camera and FaceMesh processing
-    if (sendFramesRequestID) cancelAnimationFrame(sendFramesRequestID);
-    if (videoElement.srcObject) {
-        videoElement.srcObject.getTracks().forEach(track => track.stop());
-        videoElement.srcObject = null;
-    }
-    videoElement.style.display = 'none'; // Hide the video preview
+    // **CLAVE:** Detener y reiniciar la cámara y FaceMesh al final de la partida
+    stopCameraAndFaceMesh();
     
     canvas.classList.add('snake-hit'); // Add hit effect
     setTimeout(() => {
@@ -209,6 +210,21 @@ function initiateGameOverSequence() {
         gameOverScreen.classList.add('visible'); // Show game over screen
         gameState = 'GAME_OVER'; // Update game state
     }, 600);
+}
+
+// Función para detener la cámara y FaceMesh
+function stopCameraAndFaceMesh() {
+    if (sendFramesRequestID) {
+        cancelAnimationFrame(sendFramesRequestID);
+        sendFramesRequestID = null; // Reset request ID
+    }
+    if (videoElement.srcObject) {
+        videoElement.srcObject.getTracks().forEach(track => track.stop());
+        videoElement.srcObject = null;
+    }
+    videoElement.style.display = 'none'; // Hide the video preview
+    // No reseteamos faceMesh a null, lo reutilizamos.
+    // Simplemente nos aseguramos de que no envíe más frames
 }
 
 // --- Lógica del Juego ---
@@ -345,9 +361,11 @@ function handleSwipe(endX, endY) {
 function onFaceResults(results) {
     if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
         // No face detected
+        // Consider pausing the game or providing feedback if face tracking is lost during gameplay
         if (gameState === 'PLAYING') {
-            // Potentially pause or show a warning if face tracking is lost during gameplay
-            // For now, we'll just not update direction.
+             // messageText.textContent = 'Face Lost! Re-center.'; // Example feedback
+             // messageOverlay.style.display = 'flex';
+             // You might want to pause gameInterval here if desired
         }
         return;
     }
@@ -415,10 +433,14 @@ async function processVideoFrame() {
         }
     }
     // Continue processing frames only if game state is not INITIAL or GAME_OVER
+    // This ensures requestAnimationFrame is not endlessly called when camera is off
     if (gameState !== 'INITIAL' && gameState !== 'GAME_OVER') {
         sendFramesRequestID = requestAnimationFrame(processVideoFrame);
     } else {
-        if (sendFramesRequestID) cancelAnimationFrame(sendFramesRequestID);
+        if (sendFramesRequestID) {
+            cancelAnimationFrame(sendFramesRequestID);
+            sendFramesRequestID = null;
+        }
     }
 }
 
@@ -427,6 +449,9 @@ async function setupCameraAndFaceMesh() {
     messageText.textContent = 'Starting camera...';
     startButton.style.display = 'none'; // Hide the start button while camera initializes
     messageOverlay.style.display = 'flex'; // Show overlay with message
+    
+    // Ensure camera stream is stopped before attempting to start a new one
+    stopCameraAndFaceMesh(); 
 
     try {
         // Request access to the user's camera
@@ -467,7 +492,7 @@ async function setupCameraAndFaceMesh() {
         videoElement.onloadedmetadata = () => {
             processVideoFrame(); // Start processing video frames for face detection
             gameState = 'CALIBRATING'; // Move to calibration state
-            isCalibrated = false; // Reset calibration status
+            isCalibrated = false; // Reset calibration status for new calibration
             messageText.textContent = 'Look straight at the camera to calibrate.'; // Prompt user
         };
 
@@ -727,7 +752,8 @@ function shareToWhatsApp() {
 async function initialLoad() {
     // Set canvas dimensions
     const gameArea = document.getElementById('game-area');
-    const size = Math.min(gameArea.clientWidth, window.innerHeight * 0.6); // Adjust based on viewport height for mobile
+    // Consider using a fixed aspect ratio or max size relative to viewport width/height
+    const size = Math.min(gameArea.clientWidth, window.innerHeight * 0.6); 
     canvas.width = size;
     canvas.height = size;
 
@@ -751,16 +777,22 @@ async function initialLoad() {
     // Update total play count on initial load
     updatePlayCount(true); // Pass true to not increment on first load
     
-    // Display initial message overlay
+    // Display initial message overlay. Auth state listener will handle button visibility.
     messageOverlay.style.display = 'flex';
-    startButton.style.display = 'block'; // Ensure the start button is visible
+    if (auth.currentUser) { // If already signed in on load
+        startButton.style.display = 'block';
+        messageText.textContent = 'Face Control';
+    } else { // If not signed in on load
+        startButton.style.display = 'none';
+        messageText.textContent = 'Sign in to play!';
+    }
 }
 
 // Event Listeners
 loginBtn.addEventListener('click', signInWithGoogle);
 logoutBtn.addEventListener('click', signOut);
 startButton.addEventListener('click', startGame); // Use the button inside the overlay
-playAgainBtn.addEventListener('click', runGame);
+playAgainBtn.addEventListener('click', startGame); // **AJUSTADO:** playAgainBtn ahora también llama a startGame para recalibrar
 lobbyBtn.addEventListener('click', showLobby);
 muteBtn.addEventListener('click', toggleMute);
 twitterShareBtn.addEventListener('click', shareToTwitter);
