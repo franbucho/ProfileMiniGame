@@ -77,6 +77,7 @@ let gameState = 'INITIAL'; // INITIAL, STARTING_CAMERA, CALIBRATING, POST_CALIBR
 let gameLoopTimeoutId; // To manage game loop for FaceMesh
 let sendFramesRequestID; // To manage requestAnimationFrame for video processing
 const NOSE_SENSITIVITY = 0.035; // Normalized screen dimension (0-1) for sensitivity
+let faceMesh = null; // <-- ¡CORRECCIÓN AÑADIDA!
 
 // --- Lógica de Autenticación ---
 auth.onAuthStateChanged(async (user) => {
